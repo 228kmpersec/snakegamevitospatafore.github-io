@@ -3,17 +3,45 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Snake — Matrix Edition</title>
+  <title>Snake — Blood Moon</title>
   <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
   <!-- Fullscreen menu -->
   <div id="menu" class="menu">
-    <button id="btn-play" class="play-button">PLAY</button>
+    <div class="menu-container">
+      <!-- Logo/Title -->
+      <h1 class="menu-title">Snake</h1>
+      
+      <!-- Main Play Button з обгорткою для фону -->
+      <div class="play-button-wrapper">
+        <button id="btn-play" class="play-button">PLAY</button>
+      </div>
+      
+      <!-- Navigation Links -->
+      <nav class="menu-nav">
+        <a href="https://discord.gg/yourserver" class="menu-link" target="_blank" rel="noopener noreferrer">
+          DISCORD
+        </a>
+        <a href="#contact" class="menu-link" id="btn-contact">
+          Contact
+        </a>
+      </nav>
+    </div>
   </div>
 
   <!-- Game root: canvas will be added by scripts/main.js -->
   <main id="game-root" class="game-root hidden"></main>
+
+  <!-- Contact Modal -->
+  <div id="contact-modal" class="modal hidden">
+    <div class="modal-content">
+      <button class="modal-close" id="modal-close">&times;</button>
+      <h2>Contact</h2>
+      <p>Email: <a href="mailto:your@email.com">your@email.com</a></p>
+      <p>GitHub: <a href="https://github.com/yourusername" target="_blank">@yourusername</a></p>
+    </div>
+  </div>
 
   <!-- Scripts -->
   <script src="scripts/main.js"></script>
