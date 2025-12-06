@@ -129,23 +129,33 @@ function spawnFood() {
 }
 
 function keyDownEvent(e) {
-    switch (e.keyCode) {
-        case 37: 
-            if (velocityX === 1) break; 
+    // Преобразуем код клавиши в нижний регистр для удобства
+    const key = e.key.toLowerCase();
+    
+    switch (key) {
+        case 'a': // Влево
+        case 'arrowleft':
+            if (velocityX === 1) break; // Запрет разворота на 180°
             velocityX = -1;
             velocityY = 0;
             break;
-        case 38: 
+            
+        case 'w': // Вверх
+        case 'arrowup':
             if (velocityY === 1) break;
             velocityX = 0;
             velocityY = -1;
             break;
-        case 39: 
+            
+        case 'd': // Вправо
+        case 'arrowright':
             if (velocityX === -1) break;
             velocityX = 1;
             velocityY = 0;
             break;
-        case 40: 
+            
+        case 's': // Вниз
+        case 'arrowdown':
             if (velocityY === -1) break;
             velocityX = 0;
             velocityY = 1;
