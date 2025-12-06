@@ -3,11 +3,17 @@
   const menuEl = document.getElementById('menu');
   const btn = document.getElementById('btn-play');
   const gameRoot = document.getElementById('game-root');
+  const contactBtn = document.getElementById('btn-contact');
+  const contactModal = document.getElementById('contact-modal');
+  const modalClose = document.getElementById('modal-close');
   
   if (!menuEl || !btn) {
     console.warn('Menu elements not found');
     return;
   }
+  
+  console.log('✅ Play button found:', btn);
+  console.log('✅ Button parent:', btn.parentElement.className);
 
   let isGameRunning = false;
 
@@ -98,6 +104,32 @@
       beginGame();
     }
   });
+
+  // Contact modal handlers
+  if (contactBtn && contactModal && modalClose) {
+    contactBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      contactModal.classList.remove('hidden');
+    });
+
+    modalClose.addEventListener('click', () => {
+      contactModal.classList.add('hidden');
+    });
+
+    // Close modal on outside click
+    contactModal.addEventListener('click', (e) => {
+      if (e.target === contactModal) {
+        contactModal.classList.add('hidden');
+      }
+    });
+
+    // Close modal on ESC
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Escape' && !contactModal.classList.contains('hidden')) {
+        contactModal.classList.add('hidden');
+      }
+    });
+  }
 
   // Focus button on page load for better UX
   window.addEventListener('load', () => {
