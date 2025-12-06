@@ -1,59 +1,113 @@
 // scripts/menu.js
-// Логика меню
+// Логика меню и выбор режима сложности
 
-(function() {
-    const menuEl = document.getElementById('menu');
-    const btnPlay = document.getElementById('btn-play');
-    const gameRoot = document.getElementById('game-root');
-    const btnContact = document.getElementById('btn-contact');
-    const modal = document.getElementById('contact-modal');
-    const modalClose = document.getElementById('modal-close');
-    const btnMenu = document.getElementById('btn-menu');
+(function () {
+    const menuEl = document.getElementById("menu");
+    const gameRoot = document.getElementById("game-root");
 
-    // Start Game
-    function startGame() {
-        menuEl.classList.add('hidden');
-        gameRoot.classList.remove('hidden');
-        if (window.initSnakeGame) window.initSnakeGame();
+    const modeWrapper = document.getElementById("mode-wrapper");
+    const btnPlay = document.getElementById("btn-play");   // центральная
+    const btnEasy = document.getElementById("btn-easy");   // левая
+    const btnHard = document.getElementById("btn-hard");   // правая
+
+    const btnMenu = document.getElementById("btn-menu");
+
+    const btnContact = document.getElementById("btn-contact");
+    const modal = document.getElementById("contact-modal");
+    const modalClose = document.getElementById("modal-close");
+
+    if (!menuEl || !btnPlay || !modeWrapper) {
+        console.warn("Menu elements missing");
+        return;
     }
 
-    // Return to Menu
-    function showMenu() {
-        gameRoot.classList.add('hidden');
-        menuEl.classList.remove('hidden');
-        if (window.stopSnakeGame) window.stopSnakeGame();
-    }
+    // ---------- РАСКРЫТИЕ ВЫБОРА РЕЖИМА ----------
 
-    if (btnPlay) {
-        btnPlay.addEventListener('click', startGame);
-    }
+    let modesOpened = false;
 
-    if (btnMenu) {
-        btnMenu.addEventListener('click', showMenu);
-    }
-
-    // Modal Logic
-    if (btnContact && modal) {
-        btnContact.addEventListener('click', (e) => {
-            e.preventDefault();
-            modal.classList.remove('hidden');
-        });
-    }
-
-    if (modalClose && modal) {
-        modalClose.addEventListener('click', () => {
-            modal.classList.add('hidden');
-        });
-    }
-
-    // Close modal on click outside
-    window.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.classList.add('hidden');
+    btnPlay.addEventListener("click", () => {
+        if (!modesOpened) {
+            // Первый клик – открыть режимы, переименовать кнопку
+            modesOpened = true;
+            modeWrapper.classList.add("modes-visible");
+            btnPlay.textContent = "DEFAULT"; // дефолтная скорость
+        } else {
+            // Если уже открыты – запускать дефолтный режим
+            startGameWithSpeed(40);
         }
     });
 
-    // Expose for Game Over
+    // EASY (очень медленно)
+    if (btnEasy) {
+        btnEasy.addEventListener("click", () => {
+            startGameWithSpeed(150); // лёгкий режим
+        });
+    }
+
+    // HARD (быстро)
+    if (btnHard) {
+        btnHard.addEventListener("click", () => {
+            startGameWithSpeed(16); // хард
+        });
+    }
+
+    // ---------- ЗАПУСК ИГРЫ С ВЫБРАННОЙ СКОРОСТЬЮ ----------
+
+    function startGameWithSpeed(speedMs) {
+        if (typeof window.initSnakeGame !== "function") {
+            alert("Ошибка: игра ещё не загрузилась (initSnakeGame не найден).");
+            return;
+        }
+
+        window.gameSpeed = speedMs;   // глобальная переменная читается в main.js
+
+        // Скрываем меню, показываем игру
+        menuEl.classList.add("hidden");
+        gameRoot.classList.remove("hidden");
+
+        // Старт игры
+        window.initSnakeGame();
+    }
+
+    // ---------- ВЫХОД В МЕНЮ ИЗ ИГРЫ ----------
+
+    function showMenu() {
+        gameRoot.classList.add("hidden");
+        menuEl.classList.remove("hidden");
+
+        // Сброс состояния меню
+        modesOpened = false;
+        modeWrapper.classList.remove("modes-visible");
+        btnPlay.textContent = "PLAY";
+
+        if (typeof window.stopSnakeGame === "function") {
+            window.stopSnakeGame();
+        }
+    }
+
+    if (btnMenu) {
+        btnMenu.addEventListener("click", showMenu);
+    }
+
+    // Чтобы игру могла завершать сама
     window.returnToMenu = showMenu;
 
+    // ---------- МОДАЛКА CONTACT ----------
+
+    if (btnContact && modal && modalClose) {
+        btnContact.addEventListener("click", (e) => {
+            e.preventDefault();
+            modal.classList.remove("hidden");
+        });
+
+        modalClose.addEventListener("click", () => {
+            modal.classList.add("hidden");
+        });
+
+        window.addEventListener("click", (e) => {
+            if (e.target === modal) {
+                modal.classList.add("hidden");
+            }
+        });
+    }
 })();
