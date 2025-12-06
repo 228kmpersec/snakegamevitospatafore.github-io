@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cyber Snake 2077</title>
-    <!-- Путь к CSS изменен под твою структуру -->
+    <title>Snake // Cyberpunk Noir</title>
     <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
@@ -13,11 +12,16 @@
     <div id="menu" class="menu">
         <div class="menu-container">
             <h1 class="menu-title">SNAKE</h1>
-            
-            <div class="play-button-wrapper">
-                <button id="btn-play" class="play-button">INITIALIZE</button>
+
+            <!-- Обёртка трёх кнопок -->
+            <div class="play-button-wrapper" id="mode-wrapper">
+                <button class="mode-button mode-button-left" id="btn-easy">EASY</button>
+
+                <button id="btn-play" class="play-button">PLAY</button>
+
+                <button class="mode-button mode-button-right" id="btn-hard">HARD</button>
             </div>
-            
+
             <div class="menu-nav">
                 <a href="#" class="menu-link" id="btn-contact">CONTACT</a>
                 <a href="https://github.com" target="_blank" class="menu-link">GITHUB</a>
@@ -44,7 +48,6 @@
         </div>
     </div>
 
-    <!-- Пути к скриптам изменены под папку scripts -->
     <script src="scripts/menu.js"></script>
     <script src="scripts/main.js"></script>
 </body>
