@@ -1,14 +1,59 @@
 :root{
-  --bg: #ffffff;
-  --text: #000000;
-  --accent: #000000;
-  --btn-bg: #ffffff;
-  --btn-border: #000000;
+  --bg: linear-gradient(135deg, #000000 0%, #0d0d0d 100%);
+  --text: #00ff00;
+  --accent: #00ff00;
+  --btn-bg: rgba(0, 255, 0, 0.05);
+  --btn-border: #00ff00;
+  --glow: 0 0 20px rgba(0, 255, 0, 0.8), 0 0 40px rgba(0, 255, 0, 0.5);
 }
 
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
-body{background:var(--bg);color:var(--text);}
+
+html,body{
+  height:100%;
+  margin:0;
+  font-family:'Courier New', monospace, Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+body{
+  background: var(--bg);
+  background-attachment: fixed;
+  color:var(--text);
+  overflow: hidden;
+}
+
+/* Анімований фон */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(0, 255, 0, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(0, 255, 0, 0.05) 0%, transparent 50%);
+  animation: bgPulse 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes bgPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Сканлайн ефект Matrix */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    rgba(0, 255, 0, 0.03) 1px,
+    transparent 2px,
+    transparent 4px
+  );
+  pointer-events: none;
+  opacity: 0.5;
+}
 
 /* Fullscreen centered menu */
 .menu{
@@ -17,8 +62,14 @@ body{background:var(--bg);color:var(--text);}
   display:flex;
   align-items:center;
   justify-content:center;
-  background:var(--bg);
+  background: transparent;
   z-index:1000;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Big play button */
@@ -32,26 +83,68 @@ body{background:var(--bg);color:var(--text);}
   border:4px solid var(--btn-border);
   font-weight:900;
   font-size:clamp(28px, 8vw, 64px);
-  letter-spacing:1px;
+  letter-spacing:3px;
   border-radius:6px;
   cursor:pointer;
   display:flex;
   align-items:center;
   justify-content:center;
   user-select:none;
-  transition:transform .08s ease, box-shadow .08s ease;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+  transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--glow), 0 12px 40px rgba(0,0,0,0.5);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  text-shadow: 0 0 10px currentColor;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Анімований градієнт на кнопці */
+.play-button::before {
+  content: '';
+  position: absolute;
+  inset: -100%;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(0, 255, 0, 0.2) 50%,
+    transparent 70%
+  );
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+}
+
+/* Пульсація */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
 }
 
 /* Hover / active */
-.play-button:hover{ transform: translateY(-4px); }
-.play-button:active{ transform: translateY(0); box-shadow: 0 6px 14px rgba(0,0,0,0.08); }
+.play-button:hover{ 
+  transform: translateY(-8px) scale(1.05);
+  box-shadow: var(--glow), 0 20px 60px rgba(0, 255, 0, 0.3);
+  filter: brightness(1.2);
+  animation: none;
+}
+
+.play-button:active{ 
+  transform: translateY(-2px) scale(1.02); 
+  box-shadow: var(--glow), 0 10px 30px rgba(0, 255, 0, 0.3); 
+}
 
 /* Hidden helper */
 .hidden{ display:none !important; }
 
 /* placeholder area where game canvas will be created */
-.game-root{ position:relative; min-height:100vh; }
+.game-root{ 
+  position:relative; 
+  min-height:100vh; 
+}
 
 /* small starting message */
 .starting-msg{
@@ -59,8 +152,24 @@ body{background:var(--bg);color:var(--text);}
   top:20px;
   left:50%;
   transform:translateX(-50%);
-  background:rgba(0,0,0,0.06);
-  padding:8px 12px;
+  background: var(--btn-bg);
+  backdrop-filter: blur(10px);
+  padding:12px 24px;
   border-radius:6px;
   font-weight:600;
+  border: 2px solid var(--btn-border);
+  box-shadow: var(--glow);
+  color: var(--text);
+  animation: slideDown 0.5s ease;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateX(-50%) translateY(-100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
 }
