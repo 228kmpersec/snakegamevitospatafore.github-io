@@ -112,7 +112,7 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // «стекло» поверх матрицы
-    ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+    ctx.fillStyle = "rgba(0, 0, 0, 0.100000)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // змейка
