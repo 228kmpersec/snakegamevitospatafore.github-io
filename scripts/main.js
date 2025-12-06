@@ -90,8 +90,8 @@ function update() {
 }
 
 function draw() {
-    ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; // Полупрозрачный черный
+ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = '#00ff41';
     for (let i = 0; i < snake.length; i++) {
@@ -185,7 +185,7 @@ function createMatrixRain() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()';
 
     function drawMatrix() {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; // Белые символы
         ctx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
 
         ctx.fillStyle = '#00ff41'; // Зеленый цвет
