@@ -199,7 +199,7 @@ function createMatrixRain() {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; // Белые символы
         ctx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
 
-        ctx.fillStyle = '#00ff41'; // Зеленый цвет
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; // Белые символы
         ctx.font = '15px monospace';
 
         for (let i = 0; i < drops.length; i++) {
