@@ -3,23 +3,15 @@
 
 (function () {
   const root = document.getElementById('game-root');
+  
+  if (!root) {
+    console.error('game-root element not found');
+    return;
+  }
 
-  // create canvas
-  const canvas = document.createElement('canvas');
-  canvas.id = 'game-canvas';
-  canvas.width = 360;
-  canvas.height = 420;
-  canvas.style.width = '360px';
-  canvas.style.height = '420px';
-  canvas.style.display = 'block';
-  canvas.style.margin = '0 auto';
-  canvas.style.background = '#000000'; // Dark Matrix background
-  canvas.style.border = '2px solid #00ff00'; // Green border
-  canvas.style.borderRadius = '8px';
-  canvas.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.3)'; // Green glow
-  root.appendChild(canvas);
-
-  const ctx = canvas.getContext('2d');
+  let canvas = null;
+  let ctx = null;
+  let keyboardListener = null;
 
   // game config
   const config = {
@@ -40,10 +32,10 @@
   };
 
   // snake state
-  const snake = {
-    x: Math.floor((canvas.width / config.sizeCell) / 2) * config.sizeCell,
-    y: Math.floor((canvas.height / config.sizeCell) / 2) * config.sizeCell,
-    dx: config.sizeCell,
+  let snake = {
+    x: 0,
+    y: 0,
+    dx: 0,
     dy: 0,
     tails: [],
     maxTails: 3
@@ -56,34 +48,96 @@
   let lastTime = 0;
   let accumulator = 0;
   let running = false;
-
-  // initialize first berry
-  randomPositionBerry();
-  drawInitial();
-
-  // keyboard
-  document.addEventListener('keydown', (e) => {
-    if (e.code === 'KeyW' || e.code === 'ArrowUp') {
-      if (snake.dy === 0) { snake.dx = 0; snake.dy = -config.sizeCell; }
-    } else if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
-      if (snake.dx === 0) { snake.dx = -config.sizeCell; snake.dy = 0; }
-    } else if (e.code === 'KeyS' || e.code === 'ArrowDown') {
-      if (snake.dy === 0) { snake.dx = 0; snake.dy = config.sizeCell; }
-    } else if (e.code === 'KeyD' || e.code === 'ArrowRight') {
-      if (snake.dx === 0) { snake.dx = config.sizeCell; snake.dy = 0; }
-    } else if (e.code === 'Escape') {
-      // pause
-      stopGame();
-      const menuEl = document.getElementById('menu');
-      if (menuEl) menuEl.classList.remove('hidden');
-    }
-  });
+  let gameInitialized = false;
 
   // expose startGame globally so menu.js can call it
   window.startGame = startGame;
 
+  function initCanvas() {
+    // Remove old canvas if exists
+    if (canvas) {
+      canvas.remove();
+    }
+
+    // Create new canvas
+    canvas = document.createElement('canvas');
+    canvas.id = 'game-canvas';
+    canvas.width = 360;
+    canvas.height = 420;
+    canvas.style.width = '360px';
+    canvas.style.height = '420px';
+    canvas.style.display = 'block';
+    canvas.style.margin = '0 auto';
+    canvas.style.background = '#000000';
+    canvas.style.border = '2px solid #00ff00';
+    canvas.style.borderRadius = '8px';
+    canvas.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.3)';
+    root.appendChild(canvas);
+
+    ctx = canvas.getContext('2d');
+    gameInitialized = true;
+  }
+
+  function setupKeyboard() {
+    // Remove old listener if exists
+    if (keyboardListener) {
+      document.removeEventListener('keydown', keyboardListener);
+    }
+
+    // Create new listener
+    keyboardListener = (e) => {
+      // Only handle keys when game is running
+      if (!running) return;
+
+      if (e.code === 'KeyW' || e.code === 'ArrowUp') {
+        if (snake.dy === 0) { 
+          snake.dx = 0; 
+          snake.dy = -config.sizeCell; 
+          e.preventDefault();
+        }
+      } else if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
+        if (snake.dx === 0) { 
+          snake.dx = -config.sizeCell; 
+          snake.dy = 0; 
+          e.preventDefault();
+        }
+      } else if (e.code === 'KeyS' || e.code === 'ArrowDown') {
+        if (snake.dy === 0) { 
+          snake.dx = 0; 
+          snake.dy = config.sizeCell; 
+          e.preventDefault();
+        }
+      } else if (e.code === 'KeyD' || e.code === 'ArrowRight') {
+        if (snake.dx === 0) { 
+          snake.dx = config.sizeCell; 
+          snake.dy = 0; 
+          e.preventDefault();
+        }
+      } else if (e.code === 'Escape') {
+        e.preventDefault();
+        pauseGame();
+      }
+    };
+
+    document.addEventListener('keydown', keyboardListener);
+  }
+
   function startGame() {
-    // reset state
+    // Prevent multiple game instances
+    if (running) {
+      console.warn('Game already running');
+      return;
+    }
+
+    // Initialize canvas if not done yet
+    if (!gameInitialized) {
+      initCanvas();
+    }
+
+    // Setup keyboard controls
+    setupKeyboard();
+
+    // Reset state
     score = 0;
     snake.x = Math.floor((canvas.width / config.sizeCell) / 2) * config.sizeCell;
     snake.y = Math.floor((canvas.height / config.sizeCell) / 2) * config.sizeCell;
@@ -91,13 +145,15 @@
     snake.maxTails = 3;
     snake.dx = config.sizeCell;
     snake.dy = 0;
+    
     randomPositionBerry();
 
-    // start loop
+    // Start loop
     running = true;
     lastTime = performance.now();
     accumulator = 0;
     requestAnimationFrame(loop);
+    
     console.log('Game started (UPS=' + config.UPS + ')');
   }
 
@@ -105,8 +161,22 @@
     running = false;
   }
 
+  function pauseGame() {
+    stopGame();
+    
+    // Call resetMenu to properly show menu and hide game
+    if (typeof window.resetMenu === 'function') {
+      window.resetMenu();
+    } else {
+      // Fallback if resetMenu doesn't exist
+      const menuEl = document.getElementById('menu');
+      if (menuEl) menuEl.classList.remove('hidden');
+    }
+  }
+
   function loop(time) {
     if (!running) return;
+    
     let dt = time - lastTime;
     lastTime = time;
 
@@ -148,6 +218,8 @@
   }
 
   function render() {
+    if (!ctx) return;
+
     // Clear with black background
     ctx.fillStyle = colors.bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -191,6 +263,8 @@
   }
 
   function drawGridDots() {
+    if (!ctx) return;
+    
     const gap = 20;
     ctx.fillStyle = colors.grid;
     const r = 1;
@@ -203,13 +277,9 @@
     }
   }
 
-  function drawInitial() {
-    ctx.fillStyle = colors.bg;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    drawGridDots();
-  }
-
   function randomPositionBerry() {
+    if (!canvas) return;
+    
     const cols = Math.floor(canvas.width / config.sizeCell);
     const rows = Math.floor(canvas.height / config.sizeCell);
     
@@ -233,6 +303,8 @@
   }
 
   function collisionBorder() {
+    if (!canvas) return;
+    
     if (snake.x < 0) snake.x = canvas.width - config.sizeCell;
     else if (snake.x >= canvas.width) snake.x = 0;
     if (snake.y < 0) snake.y = canvas.height - config.sizeCell;
@@ -242,8 +314,10 @@
   function gameOver() {
     stopGame();
     
+    if (!ctx || !canvas) return;
+    
     // Draw game over screen
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // Game Over text with glow
@@ -263,17 +337,24 @@
     // Instructions
     ctx.shadowBlur = 10;
     ctx.font = "16px 'Courier New', monospace";
-    ctx.fillText("Press ESC for menu", canvas.width / 2, canvas.height / 2 + 50);
+    ctx.fillText("Returning to menu...", canvas.width / 2, canvas.height / 2 + 50);
     ctx.shadowBlur = 0;
     
-    // Show menu after delay
+    // Use resetMenu to properly reset everything
     setTimeout(() => {
-      const menuEl = document.getElementById('menu');
-      if (menuEl) menuEl.classList.remove('hidden');
+      if (typeof window.resetMenu === 'function') {
+        window.resetMenu();
+      } else {
+        // Fallback
+        const menuEl = document.getElementById('menu');
+        if (menuEl) menuEl.classList.remove('hidden');
+      }
     }, 1500);
   }
 
   function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min) + min);
   }
+
+  console.log('Game script initialized');
 })();
