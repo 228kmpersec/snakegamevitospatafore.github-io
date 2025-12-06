@@ -1,50 +1,49 @@
-<!doctype html>
-<html lang="uk">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Snake — Blood Moon</title>
-  <link rel="stylesheet" href="styles/main.css">
-</head>
-<body>
-  <!-- Fullscreen menu -->
-  <div id="menu" class="menu">
-    <div class="menu-container">
-      <!-- Logo/Title -->
-      <h1 class="menu-title">Snake</h1>
-      
-      <!-- Main Play Button з Віто -->
-      <div class="play-button-wrapper">
-        <button id="btn-play" class="play-button">PLAY</button>
-      </div>
-      
-      <!-- Navigation Links -->
-      <nav class="menu-nav">
-        <a href="camoomcoc" class="menu-link" target="_blank" rel="noopener noreferrer">
-          DISCORD
-        </a>
-        <a href="#contact" class="menu-link" id="btn-contact">
-          Contact
-        </a>
-      </nav>
-    </div>
+<nav class="menu-nav">
+  <a href="#" class="menu-link" id="btn-discord">
+    DISCORD
+  </a>
+  <a href="#contact" class="menu-link" id="btn-contact">
+    Contact
+  </a>
+</nav>
+
+<!-- Contact Modal -->
+<div id="contact-modal" class="modal hidden">
+  <div class="modal-content">
+    <button class="modal-close" id="modal-close">&times;</button>
+    <h2 id="modal-title">Contact</h2>
+    <p id="modal-email">Email: <a href="mailto:your@email.com">😬😬😬😬😬</a></p>
+    <p id="modal-github">GitHub: <a href="https://github.com/yourusername" target="_blank">@228kmpersec</a></p>
   </div>
+</div>
 
-  <!-- Game root -->
-  <main id="game-root" class="game-root hidden"></main>
+<script>
+  const contactBtn = document.getElementById('btn-contact');
+  const discordBtn = document.getElementById('btn-discord');
+  const modal = document.getElementById('contact-modal');
+  const modalClose = document.getElementById('modal-close');
+  const modalTitle = document.getElementById('modal-title');
+  const modalEmail = document.getElementById('modal-email');
+  const modalGithub = document.getElementById('modal-github');
 
-  <!-- Contact Modal -->
-  <div id="contact-modal" class="modal hidden">
-    <div class="modal-content">
-      <button class="modal-close" id="modal-close">&times;</button>
-      <h2>Contact</h2>
-      <p>Email: <a href="mailto:your@email.com">😬😬😬😬😬</a></p>
-      <p>GitHub: <a href="https://github.com/yourusername" target="_blank">@228kmpersec</a></p>
-    </div>
-  </div>
+  // Контактная кнопка
+  contactBtn.addEventListener('click', () => {
+    modalTitle.textContent = 'Contact';
+    modalEmail.innerHTML = 'Email: <a href="mailto:your@email.com">😬😬😬😬😬</a>';
+    modalGithub.innerHTML = 'GitHub: <a href="https://github.com/yourusername" target="_blank">@228kmpersec</a>';
+    modal.classList.remove('hidden');
+  });
 
-  <!-- Scripts -->
-  <script src="scripts/main.js"></script>
-  <script src="scripts/menu.js"></script>
-</body>
-</html>
+  // Discord кнопка
+  discordBtn.addEventListener('click', () => {
+    modalTitle.textContent = 'Discord';
+    modalEmail.innerHTML = 'Discord: camoomcoc';
+    modalGithub.innerHTML = ''; // убираем GitHub
+    modal.classList.remove('hidden');
+  });
+
+  // Закрытие модального окна
+  modalClose.addEventListener('click', () => {
+    modal.classList.add('hidden');
+  });
+</script>
