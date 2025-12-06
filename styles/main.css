@@ -11,7 +11,7 @@
 body {
     margin: 0;
     height: 100vh;
-    background-color: var(--bg-color);
+    background-color: #000000; /* обязательно чёрный */
     color: var(--primary);
     font-family: "Courier New", monospace;
     overflow: hidden;
