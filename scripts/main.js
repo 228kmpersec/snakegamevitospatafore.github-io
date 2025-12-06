@@ -44,7 +44,7 @@ function initSnakeGame() {
     
     spawnFood();
     isGameRunning = true;
-    gameInterval = setInterval(update, 100); 
+    gameInterval = setInterval(update, 40); 
 }
 
 function stopSnakeGame() {
