@@ -226,27 +226,14 @@ function createMatrixRain() {
         ctxM.fillStyle = "rgba(0, 0, 0, 0.3)";
         ctxM.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
 
+        ctxM.fillStyle = "rgba(255, 255, 255, 0.9)";
         ctxM.font = "18px monospace";
 
         for (let i = 0; i < drops.length; i++) {
             const text = chars[Math.floor(Math.random() * chars.length)];
-            const x = i * 20;
-            const y = drops[i] * 20;
+            ctxM.fillText(text, i * 20, drops[i] * 20);
 
-            // Снаружи поля – ярко, внутри – тускло
-            const inGameArea =
-                x >= canvas.offsetLeft &&
-                x <= canvas.offsetLeft + canvas.width &&
-                y >= canvas.offsetTop &&
-                y <= canvas.offsetTop + canvas.height;
-
-            ctxM.fillStyle = inGameArea
-                ? "rgba(255, 255, 255, 0.15)"   // внутри поля: 15% яркости
-                : "rgba(255, 255, 255, 0.9)";   // снаружи: почти белый
-
-            ctxM.fillText(text, x, y);
-
-            if (y > matrixCanvas.height && Math.random() > 0.975) {
+            if (drops[i] * 20 > matrixCanvas.height && Math.random() > 0.975) {
                 drops[i] = 0;
             }
             drops[i]++;
