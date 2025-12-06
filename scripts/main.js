@@ -1,360 +1,442 @@
-// Simple snake game that exposes window.startGame() to be called from menu.
-// Creates a canvas inside #game-root and runs a fixed-timestep loop.
+/* ====== BLOOD MOON THEME 🌙🔴 ====== */
+:root{
+  --bg: linear-gradient(135deg, #1a0a0f 0%, #2d1520 50%, #4a1f33 100%);
+  --text: #ff4d6d;
+  --accent: #ff4d6d;
+  --btn-bg: rgba(255, 77, 109, 0.1);
+  --btn-border: #ff4d6d;
+  --glow: 0 0 25px rgba(255, 77, 109, 0.8), 0 0 50px rgba(200, 50, 100, 0.4);
+}
 
-(function () {
-  const root = document.getElementById('game-root');
+*{
+  box-sizing:border-box;
+}
+
+html,body{
+  height:100%;
+  margin:0;
+  font-family:'Courier New', monospace, Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+body{
+  background: var(--bg);
+  background-attachment: fixed;
+  color:var(--text);
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Анімований фон з червоними відтінками */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(255, 77, 109, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(200, 50, 100, 0.08) 0%, transparent 50%);
+  animation: bgPulse 8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes bgPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Сканлайн ефект з червоним відтінком */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    rgba(255, 77, 109, 0.03) 1px,
+    transparent 2px,
+    transparent 4px
+  );
+  pointer-events: none;
+  opacity: 0.5;
+  z-index: 1;
+}
+
+/* Fullscreen centered menu */
+.menu{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: transparent;
+  z-index:1000;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Menu Container */
+.menu-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  padding: 40px;
+  position: relative;
+}
+
+/* Фонове зображення за кнопкою - Віто вилазить при hover! */
+.menu-container::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.7);
+  width: 600px;
+  height: 600px;
+  background-image: url('../images/vito.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0;
+  z-index: -1;
+  pointer-events: none;
+  filter: grayscale(100%) brightness(0.8) sepia(100%) hue-rotate(310deg) saturate(400%);
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Віто вилазить коли наводиш на кнопку! */
+.play-button:hover ~ .menu-container::before,
+.menu-container:has(.play-button:hover)::before {
+  opacity: 0.25;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+/* Menu Title "Snake" */
+.menu-title {
+  font-size: clamp(48px, 12vw, 96px);
+  font-weight: 900;
+  letter-spacing: 8px;
+  margin: 0;
+  color: var(--accent);
+  text-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
+  animation: titlePulse 3s ease-in-out infinite;
+}
+
+@keyframes titlePulse {
+  0%, 100% { 
+    text-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
+  }
+  50% { 
+    text-shadow: 0 0 30px currentColor, 0 0 60px currentColor, 0 0 80px rgba(255, 77, 109, 0.5);
+  }
+}
+
+/* Big play button */
+.play-button{
+  width: min(68vw, 420px);
+  max-width: 420px;
+  height: min(20vh, 140px);
+  max-height: 140px;
+  background: var(--btn-bg);
+  color: var(--accent);
+  border: 4px solid var(--btn-border);
+  font-weight: 900;
+  font-size: clamp(32px, 6vw, 52px);
+  letter-spacing: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--glow), 0 12px 40px rgba(0,0,0,0.5);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  text-shadow: 0 0 10px currentColor;
+  animation: pulse 2s ease-in-out infinite;
+  z-index: 1;
+}
+
+/* Анімований градієнт на кнопці */
+.play-button::before {
+  content: '';
+  position: absolute;
+  inset: -100%;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(255, 77, 109, 0.2) 50%,
+    transparent 70%
+  );
+  animation: shimmer 4s infinite;
+  z-index: -1;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+}
+
+/* Пульсація */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+/* Hover / active */
+.play-button:hover{ 
+  transform: translateY(-8px) scale(1.05);
+  box-shadow: var(--glow), 0 20px 60px rgba(255, 77, 109, 0.4);
+  filter: brightness(1.2);
+  animation: none;
+}
+
+.play-button:active{ 
+  transform: translateY(-2px) scale(1.02); 
+  box-shadow: var(--glow), 0 10px 30px rgba(255, 77, 109, 0.4); 
+}
+
+/* Menu Navigation */
+.menu-nav {
+  display: flex;
+  gap: 40px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.menu-link {
+  color: var(--text);
+  text-decoration: none;
+  font-size: clamp(18px, 3vw, 24px);
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 12px 24px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  position: relative;
+  text-shadow: 0 0 5px currentColor;
+}
+
+.menu-link::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--btn-border);
+  border-radius: 6px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.menu-link:hover {
+  color: var(--accent);
+  text-shadow: 0 0 15px currentColor;
+  transform: translateY(-2px);
+}
+
+.menu-link:hover::before {
+  opacity: 1;
+  box-shadow: var(--glow);
+}
+
+.menu-link:active {
+  transform: translateY(0);
+}
+
+/* Contact Modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  background: var(--btn-bg);
+  backdrop-filter: blur(20px);
+  border: 2px solid var(--btn-border);
+  border-radius: 12px;
+  padding: 40px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: var(--glow), 0 20px 60px rgba(0, 0, 0, 0.5);
+  position: relative;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-content h2 {
+  color: var(--accent);
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 32px;
+  text-shadow: 0 0 10px currentColor;
+}
+
+.modal-content p {
+  margin: 15px 0;
+  font-size: 18px;
+}
+
+.modal-content a {
+  color: var(--accent);
+  text-decoration: none;
+  text-shadow: 0 0 5px currentColor;
+  transition: all 0.3s ease;
+}
+
+.modal-content a:hover {
+  text-shadow: 0 0 15px currentColor;
+  filter: brightness(1.2);
+}
+
+.modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 36px;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  background: rgba(255, 77, 109, 0.2);
+  color: #ff4d6d;
+  text-shadow: 0 0 10px #ff4d6d;
+}
+
+/* Hidden helper */
+.hidden{ 
+  display:none !important; 
+}
+
+/* placeholder area where game canvas will be created */
+.game-root{ 
+  position:relative; 
+  min-height:100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 10;
+}
+
+/* Стилі для canvas */
+.game-root canvas {
+  display: block;
+  margin: 0 auto;
+  box-shadow: var(--glow), 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* small starting message */
+.starting-msg{
+  position:fixed;
+  top:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background: var(--btn-bg);
+  backdrop-filter: blur(10px);
+  padding:12px 24px;
+  border-radius:6px;
+  font-weight:600;
+  border: 2px solid var(--btn-border);
+  box-shadow: var(--glow);
+  color: var(--text);
+  animation: slideDown 0.5s ease;
+  z-index: 1001;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateX(-50%) translateY(-100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Адаптивність для маленьких екранів */
+@media (max-width: 480px) {
+  .menu-container {
+    gap: 30px;
+    padding: 20px;
+  }
+
+  .menu-title {
+    letter-spacing: 4px;
+  }
+
+  .play-button {
+    font-size: clamp(24px, 7vw, 40px);
+    letter-spacing: 3px;
+  }
+
+  .menu-nav {
+    gap: 20px;
+  }
+
+  .menu-link {
+    font-size: 16px;
+    padding: 10px 20px;
+  }
   
-  if (!root) {
-    console.error('game-root element not found');
-    return;
+  .game-root {
+    padding: 10px;
+  }
+  
+  .starting-msg {
+    font-size: 14px;
+    padding: 10px 20px;
   }
 
-  let canvas = null;
-  let ctx = null;
-  let keyboardListener = null;
-
-  // game config
-  const config = {
-    sizeCell: 16,
-    sizeBerry: 4,
-    UPS: 15 // logical updates per second
-  };
-  const TICK = 1000 / config.UPS;
-
-  // Matrix colors
-  const colors = {
-    bg: '#000000',
-    snakeHead: '#00ff00',
-    snakeBody: '#008800',
-    berry: '#ff0000',
-    text: '#00ff00',
-    grid: 'rgba(0, 255, 0, 0.1)'
-  };
-
-  // snake state
-  let snake = {
-    x: 0,
-    y: 0,
-    dx: 0,
-    dy: 0,
-    tails: [],
-    maxTails: 3
-  };
-
-  let berry = { x: 0, y: 0 };
-  let score = 0;
-
-  // loop control
-  let lastTime = 0;
-  let accumulator = 0;
-  let running = false;
-  let gameInitialized = false;
-
-  // expose startGame globally so menu.js can call it
-  window.startGame = startGame;
-
-  function initCanvas() {
-    // Remove old canvas if exists
-    if (canvas) {
-      canvas.remove();
-    }
-
-    // Create new canvas
-    canvas = document.createElement('canvas');
-    canvas.id = 'game-canvas';
-    canvas.width = 360;
-    canvas.height = 420;
-    canvas.style.width = '360px';
-    canvas.style.height = '420px';
-    canvas.style.display = 'block';
-    canvas.style.margin = '0 auto';
-    canvas.style.background = '#000000';
-    canvas.style.border = '2px solid #00ff00';
-    canvas.style.borderRadius = '8px';
-    canvas.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.3)';
-    root.appendChild(canvas);
-
-    ctx = canvas.getContext('2d');
-    gameInitialized = true;
+  .modal-content {
+    padding: 30px 20px;
   }
+}
 
-  function setupKeyboard() {
-    // Remove old listener if exists
-    if (keyboardListener) {
-      document.removeEventListener('keydown', keyboardListener);
-    }
+/* Додаткові утиліти */
+.fade-in {
+  animation: fadeIn 0.5s ease;
+}
 
-    // Create new listener
-    keyboardListener = (e) => {
-      // Only handle keys when game is running
-      if (!running) return;
+.fade-out {
+  animation: fadeOut 0.5s ease;
+}
 
-      if (e.code === 'KeyW' || e.code === 'ArrowUp') {
-        if (snake.dy === 0) { 
-          snake.dx = 0; 
-          snake.dy = -config.sizeCell; 
-          e.preventDefault();
-        }
-      } else if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
-        if (snake.dx === 0) { 
-          snake.dx = -config.sizeCell; 
-          snake.dy = 0; 
-          e.preventDefault();
-        }
-      } else if (e.code === 'KeyS' || e.code === 'ArrowDown') {
-        if (snake.dy === 0) { 
-          snake.dx = 0; 
-          snake.dy = config.sizeCell; 
-          e.preventDefault();
-        }
-      } else if (e.code === 'KeyD' || e.code === 'ArrowRight') {
-        if (snake.dx === 0) { 
-          snake.dx = config.sizeCell; 
-          snake.dy = 0; 
-          e.preventDefault();
-        }
-      } else if (e.code === 'Escape') {
-        e.preventDefault();
-        pauseGame();
-      }
-    };
-
-    document.addEventListener('keydown', keyboardListener);
-  }
-
-  function startGame() {
-    // Prevent multiple game instances
-    if (running) {
-      console.warn('Game already running');
-      return;
-    }
-
-    // Initialize canvas if not done yet
-    if (!gameInitialized) {
-      initCanvas();
-    }
-
-    // Setup keyboard controls
-    setupKeyboard();
-
-    // Reset state
-    score = 0;
-    snake.x = Math.floor((canvas.width / config.sizeCell) / 2) * config.sizeCell;
-    snake.y = Math.floor((canvas.height / config.sizeCell) / 2) * config.sizeCell;
-    snake.tails = [];
-    snake.maxTails = 3;
-    snake.dx = config.sizeCell;
-    snake.dy = 0;
-    
-    randomPositionBerry();
-
-    // Start loop
-    running = true;
-    lastTime = performance.now();
-    accumulator = 0;
-    requestAnimationFrame(loop);
-    
-    console.log('Game started (UPS=' + config.UPS + ')');
-  }
-
-  function stopGame() {
-    running = false;
-  }
-
-  function pauseGame() {
-    stopGame();
-    
-    // Call resetMenu to properly show menu and hide game
-    if (typeof window.resetMenu === 'function') {
-      window.resetMenu();
-    } else {
-      // Fallback if resetMenu doesn't exist
-      const menuEl = document.getElementById('menu');
-      if (menuEl) menuEl.classList.remove('hidden');
-    }
-  }
-
-  function loop(time) {
-    if (!running) return;
-    
-    let dt = time - lastTime;
-    lastTime = time;
-
-    if (dt > 1000) dt = 1000;
-    accumulator += dt;
-
-    while (accumulator >= TICK) {
-      update();
-      accumulator -= TICK;
-    }
-
-    render();
-    requestAnimationFrame(loop);
-  }
-
-  function update() {
-    snake.x += snake.dx;
-    snake.y += snake.dy;
-
-    collisionBorder();
-
-    snake.tails.unshift({ x: snake.x, y: snake.y });
-    if (snake.tails.length > snake.maxTails) snake.tails.pop();
-
-    const head = snake.tails[0];
-    if (head.x === berry.x && head.y === berry.y) {
-      snake.maxTails++;
-      score++;
-      randomPositionBerry();
-    }
-
-    for (let i = 1; i < snake.tails.length; i++) {
-      if (head.x === snake.tails[i].x && head.y === snake.tails[i].y) {
-        // game over
-        gameOver();
-        break;
-      }
-    }
-  }
-
-  function render() {
-    if (!ctx) return;
-
-    // Clear with black background
-    ctx.fillStyle = colors.bg;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    drawGridDots();
-    
-    // Draw berry with glow effect
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = colors.berry;
-    ctx.beginPath();
-    ctx.fillStyle = colors.berry;
-    ctx.arc(berry.x + config.sizeCell / 2, berry.y + config.sizeCell / 2, config.sizeBerry, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    // Draw snake with glow
-    snake.tails.forEach((cell, idx) => {
-      if (idx === 0) {
-        // Head - brighter green with glow
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = colors.snakeHead;
-        ctx.fillStyle = colors.snakeHead;
-      } else {
-        // Body - darker green
-        ctx.shadowBlur = 5;
-        ctx.shadowColor = colors.snakeBody;
-        ctx.fillStyle = colors.snakeBody;
-      }
-      ctx.fillRect(cell.x + 1, cell.y + 1, config.sizeCell - 2, config.sizeCell - 2);
-    });
-    ctx.shadowBlur = 0;
-
-    // Draw score with glow
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = colors.text;
-    ctx.fillStyle = colors.text;
-    ctx.font = "bold 16px 'Courier New', monospace";
-    ctx.textAlign = "left";
-    ctx.fillText("SCORE: " + score, 10, 20);
-    ctx.shadowBlur = 0;
-  }
-
-  function drawGridDots() {
-    if (!ctx) return;
-    
-    const gap = 20;
-    ctx.fillStyle = colors.grid;
-    const r = 1;
-    for (let y = gap; y < canvas.height; y += gap) {
-      for (let x = gap; x < canvas.width; x += gap) {
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-  }
-
-  function randomPositionBerry() {
-    if (!canvas) return;
-    
-    const cols = Math.floor(canvas.width / config.sizeCell);
-    const rows = Math.floor(canvas.height / config.sizeCell);
-    
-    let attempts = 0;
-    let validPosition = false;
-    
-    // Try to find a position not on snake's body
-    while (!validPosition && attempts < 100) {
-      berry.x = getRandomInt(0, cols) * config.sizeCell;
-      berry.y = getRandomInt(0, rows) * config.sizeCell;
-      
-      validPosition = true;
-      for (let segment of snake.tails) {
-        if (segment.x === berry.x && segment.y === berry.y) {
-          validPosition = false;
-          break;
-        }
-      }
-      attempts++;
-    }
-  }
-
-  function collisionBorder() {
-    if (!canvas) return;
-    
-    if (snake.x < 0) snake.x = canvas.width - config.sizeCell;
-    else if (snake.x >= canvas.width) snake.x = 0;
-    if (snake.y < 0) snake.y = canvas.height - config.sizeCell;
-    else if (snake.y >= canvas.height) snake.y = 0;
-  }
-
-  function gameOver() {
-    stopGame();
-    
-    if (!ctx || !canvas) return;
-    
-    // Draw game over screen
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Game Over text with glow
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = '#ff0000';
-    ctx.fillStyle = '#ff0000';
-    ctx.font = "bold 32px 'Courier New', monospace";
-    ctx.textAlign = "center";
-    ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 40);
-    
-    // Final score
-    ctx.shadowColor = colors.text;
-    ctx.fillStyle = colors.text;
-    ctx.font = "bold 24px 'Courier New', monospace";
-    ctx.fillText("SCORE: " + score, canvas.width / 2, canvas.height / 2 + 10);
-    
-    // Instructions
-    ctx.shadowBlur = 10;
-    ctx.font = "16px 'Courier New', monospace";
-    ctx.fillText("Returning to menu...", canvas.width / 2, canvas.height / 2 + 50);
-    ctx.shadowBlur = 0;
-    
-    // Use resetMenu to properly reset everything
-    setTimeout(() => {
-      if (typeof window.resetMenu === 'function') {
-        window.resetMenu();
-      } else {
-        // Fallback
-        const menuEl = document.getElementById('menu');
-        if (menuEl) menuEl.classList.remove('hidden');
-      }
-    }, 1500);
-  }
-
-  function getRandomInt(min, max) {
-    return Math.floor(Math.random() * (max - min) + min);
-  }
-
-  console.log('Game script initialized');
-})();
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
