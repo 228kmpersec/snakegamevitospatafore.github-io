@@ -214,29 +214,22 @@ function gameOver() {
 
 // ================== МАТРИЦА НА ЗАДНЕМ ФОНЕ ==================
 
-function createMatrixRain() {
-    if (matrixCanvas) return;
+function drawMatrix() {
+    // ЧЁРНЫЙ ФОН С ЛЁГКИМ ШЛЕЙФОМ
+    matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.25)'; 
+    matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
 
-    matrixCanvas = document.createElement("canvas");
-    matrixCanvas.id = "matrix-bg";
-    matrixCanvas.style.position = "fixed";
-    matrixCanvas.style.inset = "0";
-    matrixCanvas.style.zIndex = "-1";
-    document.body.appendChild(matrixCanvas);
+    // БЕЛЫЕ СИМВОЛЫ
+    matrixCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    matrixCtx.font = '15px monospace';
 
-    matrixCtx = matrixCanvas.getContext("2d");
-    matrixCanvas.width = window.innerWidth;
-    matrixCanvas.height = window.innerHeight;
+    for (let i = 0; i < matrixDrops.length; i++) {
+        const text = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+        matrixCtx.fillText(text, i * 20, matrixDrops[i] * 20);
 
-    const columns = Math.floor(matrixCanvas.width / 20);
-    matrixDrops = Array(columns).fill(1);
-
-    function drawMatrix() {
-        // Лёгкий шлейф, фон остаётся черным
-        matrixCtx.fillStyle = "rgba(0, 0, 0, 0.15)";
-        matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
-
-        matrixCtx.fillStyle = "rgba(255, 255, 255, 0.8)"; // белые символы
-        matrixCtx.font = "15px monospace";
-
-        for (let i = 0; i < matrix
+        if (matrixDrops[i] * 20 > matrixCanvas.height && Math.random() > 0.975) {
+            matrixDrops[i] = 0;
+        }
+        matrixDrops[i]++;
+    }
+}
