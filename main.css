@@ -1,0 +1,66 @@
+:root{
+  --bg: #ffffff;
+  --text: #000000;
+  --accent: #000000;
+  --btn-bg: #ffffff;
+  --btn-border: #000000;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
+body{background:var(--bg);color:var(--text);}
+
+/* Fullscreen centered menu */
+.menu{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--bg);
+  z-index:1000;
+}
+
+/* Big play button */
+.play-button{
+  width:min(68vw, 520px);
+  max-width:520px;
+  height:min(34vh, 220px);
+  max-height:220px;
+  background:var(--btn-bg);
+  color:var(--accent);
+  border:4px solid var(--btn-border);
+  font-weight:900;
+  font-size:clamp(28px, 8vw, 64px);
+  letter-spacing:1px;
+  border-radius:6px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  user-select:none;
+  transition:transform .08s ease, box-shadow .08s ease;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+}
+
+/* Hover / active */
+.play-button:hover{ transform: translateY(-4px); }
+.play-button:active{ transform: translateY(0); box-shadow: 0 6px 14px rgba(0,0,0,0.08); }
+
+/* Hidden helper */
+.hidden{ display:none !important; }
+
+/* placeholder area where game canvas will be created */
+.game-root{ position:relative; min-height:100vh; }
+
+/* small starting message */
+.starting-msg{
+  position:fixed;
+  top:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(0,0,0,0.06);
+  padding:8px 12px;
+  border-radius:6px;
+  font-weight:600;
+}

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Snake — Menu</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <!-- Fullscreen menu -->
+  <div id="menu" class="menu" role="dialog" aria-label="Main menu">
+    <button id="btn-play" class="play-button" aria-label="Play">PLAY</button>
+  </div>
+
+  <!-- Game root: canvas will be added by scripts/main.js -->
+  <main id="game-root" class="game-root" aria-hidden="true"></main>
+
+  <!-- Scripts: menu.js can call startGame() if it's defined in main.js -->
+  <script src="scripts/menu.js"></script>
+  <script src="scripts/main.js"></script>
+</body>
+</html>
