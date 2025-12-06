@@ -1,4 +1,6 @@
-// MENU LOGIC
+// scripts/menu.js
+// Логика меню
+
 (function() {
     const menuEl = document.getElementById('menu');
     const btnPlay = document.getElementById('btn-play');
