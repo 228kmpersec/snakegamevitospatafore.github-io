@@ -109,8 +109,13 @@ function update() {
 // ================== ОТРИСОВКА ==================
 
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    console.log("DRAW", Math.random());
 
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "rgba(255, 0, 0, 0.3)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ...
+}
     // «стекло» поверх матрицы
     ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
