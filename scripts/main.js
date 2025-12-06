@@ -19,12 +19,6 @@ let isGameRunning = false;
 // Скорость (по умолчанию нормальная, меняется меню)
 window.gameSpeed = 40;
 
-// MATRIX CANVAS
-let matrixCanvas = null;
-let matrixCtx = null;
-let matrixDrops = [];
-let matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()";
-
 // ================== РАЗМЕР КАНВАСА ==================
 
 function resizeCanvas() {
@@ -62,13 +56,12 @@ function initSnakeGame() {
     gameInterval = setInterval(update, window.gameSpeed);
 
     createMatrixRain();
-}
+} // ← вот этой скобки у тебя не хватало
 
 function stopSnakeGame() {
     isGameRunning = false;
     clearInterval(gameInterval);
     document.removeEventListener("keydown", keyDownEvent);
-    destroyMatrixRain();
 }
 
 // ================== ОБНОВЛЕНИЕ ИГРЫ ==================
@@ -214,22 +207,39 @@ function gameOver() {
 
 // ================== МАТРИЦА НА ЗАДНЕМ ФОНЕ ==================
 
-function drawMatrix() {
-    // ЧЁРНЫЙ ФОН С ЛЁГКИМ ШЛЕЙФОМ
-    matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.25)'; 
-    matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+function createMatrixRain() {
+    const matrixCanvas = document.createElement("canvas");
+    matrixCanvas.id = "matrix-bg";
+    matrixCanvas.style.position = "fixed";
+    matrixCanvas.style.inset = "0";
+    matrixCanvas.style.zIndex = "-1";
+    document.body.appendChild(matrixCanvas);
 
-    // БЕЛЫЕ СИМВОЛЫ
-    matrixCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    matrixCtx.font = '15px monospace';
+    const ctx = matrixCanvas.getContext("2d");
+    matrixCanvas.width = window.innerWidth;
+    matrixCanvas.height = window.innerHeight;
 
-    for (let i = 0; i < matrixDrops.length; i++) {
-        const text = matrixChars[Math.floor(Math.random() * matrixChars.length)];
-        matrixCtx.fillText(text, i * 20, matrixDrops[i] * 20);
+    const columns = Math.floor(matrixCanvas.width / 20);
+    const drops = Array(columns).fill(1);
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()";
 
-        if (matrixDrops[i] * 20 > matrixCanvas.height && Math.random() > 0.975) {
-            matrixDrops[i] = 0;
+    function drawMatrix() {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.3)"; // чёрный фон
+        ctx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+
+        ctx.fillStyle = "rgba(255, 255, 255, 1)"; // белые символы
+        ctx.font = "18px monospace";
+
+        for (let i = 0; i < drops.length; i++) {
+            const text = chars[Math.floor(Math.random() * chars.length)];
+            ctx.fillText(text, i * 20, drops[i] * 20);
+
+            if (drops[i] * 20 > matrixCanvas.height && Math.random() > 0.975) {
+                drops[i] = 0;
+            }
+            drops[i]++;
         }
-        matrixDrops[i]++;
     }
+
+    setInterval(drawMatrix, 50);
 }
