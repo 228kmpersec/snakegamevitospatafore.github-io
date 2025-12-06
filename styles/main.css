@@ -6,7 +6,9 @@
     --secondary: #b0b0b0;
 }
 
-* { box-sizing: border-box; }
+* {
+    box-sizing: border-box;
+}
 
 body {
     margin: 0;
@@ -24,8 +26,8 @@ body::after {
     inset: 0;
     background: repeating-linear-gradient(
         0deg,
-        rgba(255,255,255,0.02),
-        rgba(255,255,255,0.02) 1px,
+        rgba(255, 255, 255, 0.02),
+        rgba(255, 255, 255, 0.02) 1px,
         transparent 1px,
         transparent 3px
     );
@@ -34,14 +36,13 @@ body::after {
 }
 
 /* МЕНЮ */
-
 .menu {
     position: fixed;
     inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0,0,0,0.9);
+    background: rgba(0, 0, 0, 0.9);
     z-index: 10;
     backdrop-filter: blur(4px);
 }
@@ -55,9 +56,9 @@ body::after {
     position: relative;
     z-index: 20;
     padding: 2.5rem 3.5rem;
-    box-shadow: 0 0 40px rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(0,0,0,0.85);
+    box-shadow: 0 0 40px rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.85);
 }
 
 .menu-title {
@@ -69,36 +70,37 @@ body::after {
     position: relative;
     transform: translateY(-30px);
     text-shadow:
-        0 0 12px rgba(255,255,255,0.6),
-        0 0 24px rgba(255,255,255,0.3);
+        0 0 12px rgba(255, 255, 255, 0.6),
+        0 0 24px rgba(255, 255, 255, 0.3);
     animation: titleFlicker 4s infinite;
 }
 
 @keyframes titleFlicker {
-    0%, 90%, 100% {
+    0%,
+    90%,
+    100% {
         opacity: 1;
         text-shadow:
-            0 0 12px rgba(255,255,255,0.6),
-            0 0 24px rgba(255,255,255,0.3);
+            0 0 12px rgba(255, 255, 255, 0.6),
+            0 0 24px rgba(255, 255, 255, 0.3);
     }
     92% {
         opacity: 0.7;
-        text-shadow: 0 0 4px rgba(255,255,255,0.3);
+        text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
     }
     95% {
         opacity: 0.4;
-        text-shadow: 0 0 2px rgba(255,255,255,0.2);
+        text-shadow: 0 0 2px rgba(255, 255, 255, 0.2);
     }
     97% {
         opacity: 1;
         text-shadow:
-            0 0 16px rgba(255,255,255,0.8),
-            0 0 32px rgba(255,255,255,0.4);
+            0 0 16px rgba(255, 255, 255, 0.8),
+            0 0 32px rgba(255, 255, 255, 0.4);
     }
 }
 
-/* ВРППЕР КНОПОК + ВИТО */
-
+/* ВРЭППЕР КНОПОК + ВИТО */
 .play-button-wrapper {
     position: relative;
     display: inline-flex;
@@ -135,7 +137,6 @@ body::after {
 }
 
 /* КНОПКИ МОДОВ */
-
 .play-button,
 .mode-button {
     background: transparent;
@@ -150,8 +151,8 @@ body::after {
     position: relative;
     transition: all 0.3s ease;
     box-shadow:
-        0 0 20px rgba(255,255,255,0.15),
-        inset 0 0 12px rgba(255,255,255,0.05);
+        0 0 20px rgba(255, 255, 255, 0.15),
+        inset 0 0 12px rgba(255, 255, 255, 0.05);
 }
 
 /* Центральная */
@@ -195,12 +196,11 @@ body::after {
     background: var(--primary);
     color: #000;
     box-shadow:
-        0 0 30px rgba(255,255,255,0.5),
-        0 0 60px rgba(255,255,255,0.3);
+        0 0 30px rgba(255, 255, 255, 0.5),
+        0 0 60px rgba(255, 255, 255, 0.3);
 }
 
 /* MENU NAV */
-
 .menu-nav {
     margin-top: 2.5rem;
     display: flex;
@@ -220,11 +220,10 @@ body::after {
 .menu-link:hover {
     color: var(--primary);
     border-bottom: 1px solid var(--primary);
-    text-shadow: 0 0 8px rgba(255,255,255,0.5);
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
 }
 
 /* ИГРОВОЕ ПОЛЕ */
-
 .game-root {
     position: fixed;
     inset: 0;
@@ -237,13 +236,12 @@ body::after {
 canvas {
     border: 2px solid var(--primary);
     box-shadow:
-        0 0 30px rgba(255,255,255,0.3),
-        0 0 60px rgba(255,255,255,0.1);
+        0 0 30px rgba(255, 255, 255, 0.3),
+        0 0 60px rgba(255, 255, 255, 0.1);
     background: transparent; /* никакого белого */
 }
 
 /* UI поверх игры */
-
 .ui-overlay {
     position: absolute;
     top: 20px;
@@ -254,7 +252,7 @@ canvas {
     color: var(--primary);
     font-size: 1rem;
     font-weight: bold;
-    text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
 .back-btn {
@@ -274,15 +272,18 @@ canvas {
 }
 
 /* МОДАЛКА */
-
 .modal {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.9);
+    background: rgba(0, 0, 0, 0.9);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 50;
+}
+
+.modal.hidden {
+    display: none;
 }
 
 .modal-content {
@@ -291,7 +292,7 @@ canvas {
     padding: 2.5rem 3rem;
     min-width: 280px;
     text-align: center;
-    box-shadow: 0 0 40px rgba(255,255,255,0.3);
+    box-shadow: 0 0 40px rgba(255, 255, 255, 0.3);
     position: relative;
 }
 
@@ -307,7 +308,7 @@ canvas {
 }
 
 .modal-close:hover {
-    text-shadow: 0 0 10px rgba(255,255,255,0.8);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
 }
 
 .highlight {
