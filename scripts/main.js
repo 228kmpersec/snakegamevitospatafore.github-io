@@ -113,11 +113,14 @@ function update() {
 // ================== ОТРИСОВКА ==================
 
 function draw() {
-    // лёгкое затемнение поверх матрицы внутри поля
-    ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+    // убираем предыдущий кадр змейки, но не трогаем матрицу (она на другом канвасе)
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // лёгкое затемнение (чем меньше число, тем больше видно матрицу)
+    ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Змейка
+    // змейка
     ctx.fillStyle = "#00ff41";
     for (let i = 0; i < snake.length; i++) {
         ctx.fillRect(
@@ -128,7 +131,7 @@ function draw() {
         );
     }
 
-    // Еда
+    // еда
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(
         food.x * GRID_SIZE + 1,
