@@ -14,15 +14,15 @@
 body {
     margin: 0;
     height: 100vh;
-    background-color: var(--bg-color);
+    background-color: #000000; /* ЧЕРНЫЙ ФОН */
     color: var(--primary);
     font-family: 'Courier New', monospace;
     overflow: hidden;
-    /* Киберпанк сетка */
-    background-image: 
+    /* Убери эти строки или закомментируй их: */
+    /* background-image: 
         linear-gradient(var(--grid-line) 1px, transparent 1px),
         linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-    background-size: 30px 30px;
+    background-size: 30px 30px; */
 }
 
 /* Эффект старого монитора (сканлайны) */
