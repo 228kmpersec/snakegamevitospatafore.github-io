@@ -90,8 +90,9 @@ function update() {
 }
 
 function draw() {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; // Полупрозрачный черный
-ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Сделай фон еще прозрачнее (было 0.3 - теперь 0.1)
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = '#00ff41';
     for (let i = 0; i < snake.length; i++) {
