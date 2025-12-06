@@ -1,50 +1,51 @@
-<!doctype html>
-<html lang="uk">
+<!DOCTYPE html>
+<html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Snake — Blood Moon</title>
-  <link rel="stylesheet" href="styles/main.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Snake 2077</title>
+    <!-- Путь к CSS изменен под твою структуру -->
+    <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
-  <!-- Fullscreen menu -->
-  <div id="menu" class="menu">
-    <div class="menu-container">
-      <!-- Logo/Title -->
-      <h1 class="menu-title">Snake</h1>
-      
-      <!-- Main Play Button з Віто -->
-      <div class="play-button-wrapper">
-        <button id="btn-play" class="play-button">PLAY</button>
-      </div>
-      
-      <!-- Navigation Links -->
-      <nav class="menu-nav">
-        <a href="https://discord.gg/yourserver" class="menu-link" target="_blank" rel="noopener noreferrer">
-          DISCORD
-        </a>
-        <a href="#contact" class="menu-link" id="btn-contact">
-          Contact
-        </a>
-      </nav>
+
+    <!-- МЕНЮ -->
+    <div id="menu" class="menu">
+        <div class="menu-container">
+            <h1 class="menu-title">SNAKE_OS</h1>
+            
+            <div class="play-button-wrapper">
+                <button id="btn-play" class="play-button">INITIALIZE</button>
+            </div>
+            
+            <div class="menu-nav">
+                <a href="#" class="menu-link" id="btn-contact">CONTACT</a>
+                <a href="https://github.com" target="_blank" class="menu-link">GITHUB</a>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- Game root -->
-  <main id="game-root" class="game-root hidden"></main>
-
-  <!-- Contact Modal -->
-  <div id="contact-modal" class="modal hidden">
-    <div class="modal-content">
-      <button class="modal-close" id="modal-close">&times;</button>
-      <h2>Contact</h2>
-      <p>Email: <a href="mailto:your@email.com">your@email.com</a></p>
-      <p>GitHub: <a href="https://github.com/yourusername" target="_blank">@yourusername</a></p>
+    <!-- ИГРОВОЙ ЭКРАН -->
+    <div id="game-root" class="game-root hidden">
+        <div class="ui-overlay">
+            <div class="score-board">SCORE: <span id="score-val">0</span></div>
+            <button id="btn-menu" class="back-btn">EXIT</button>
+        </div>
+        <canvas id="gameCanvas"></canvas>
     </div>
-  </div>
 
-  <!-- Scripts -->
-  <script src="scripts/main.js"></script>
-  <script src="scripts/menu.js"></script>
+    <!-- МОДАЛЬНОЕ ОКНО -->
+    <div id="contact-modal" class="modal hidden">
+        <div class="modal-content">
+            <button id="modal-close" class="modal-close">&times;</button>
+            <h2>SYSTEM_MSG</h2>
+            <p>Dev: <span class="highlight">Student_Name</span></p>
+            <p>Project: <span class="highlight">Informatics_Final</span></p>
+        </div>
+    </div>
+
+    <!-- Пути к скриптам изменены под папку scripts -->
+    <script src="scripts/menu.js"></script>
+    <script src="scripts/main.js"></script>
 </body>
 </html>
