@@ -37,7 +37,7 @@ function resizeCanvas() {
 
 // ================== ИНИЦИАЛИЗАЦИЯ ИГРЫ ==================
 
-function initSnakeGame() {
+window.initSnakeGame = function () {
     if (isGameRunning) return;
 
     resizeCanvas();
@@ -56,13 +56,13 @@ function initSnakeGame() {
     gameInterval = setInterval(update, window.gameSpeed);
 
     createMatrixRain();
-} // ← вот этой скобки у тебя не хватало
+};
 
-function stopSnakeGame() {
+window.stopSnakeGame = function () {
     isGameRunning = false;
     clearInterval(gameInterval);
     document.removeEventListener("keydown", keyDownEvent);
-}
+};
 
 // ================== ОБНОВЛЕНИЕ ИГРЫ ==================
 
