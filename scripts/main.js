@@ -111,9 +111,9 @@ function update() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // «стекло» поверх матрицы
-
-
+    ctx.fillStyle = "#000000"; // ЧЁРНЫЙ
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
     // змейка
     ctx.fillStyle = "#00ff41";
     for (let i = 0; i < snake.length; i++) {
