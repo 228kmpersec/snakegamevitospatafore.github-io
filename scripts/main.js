@@ -215,7 +215,7 @@ function createMatrixRain() {
     matrixCanvas.style.zIndex = "-1";
     document.body.appendChild(matrixCanvas);
 
-    const ctx = matrixCanvas.getContext("2d");
+    const ctxM = matrixCanvas.getContext("2d");
     matrixCanvas.width = window.innerWidth;
     matrixCanvas.height = window.innerHeight;
 
@@ -224,17 +224,30 @@ function createMatrixRain() {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()";
 
     function drawMatrix() {
-        ctx.fillStyle = "rgba(0, 0, 0, 0.3)"; // чёрный фон
-        ctx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+        ctxM.fillStyle = "rgba(0, 0, 0, 0.3)";
+        ctxM.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
 
-        ctx.fillStyle = "rgba(255, 255, 255, 1)"; // белые символы
-        ctx.font = "18px monospace";
+        ctxM.font = "18px monospace";
 
         for (let i = 0; i < drops.length; i++) {
             const text = chars[Math.floor(Math.random() * chars.length)];
-            ctx.fillText(text, i * 20, drops[i] * 20);
+            const x = i * 20;
+            const y = drops[i] * 20;
 
-            if (drops[i] * 20 > matrixCanvas.height && Math.random() > 0.975) {
+            // Снаружи поля – ярко, внутри – тускло
+            const inGameArea =
+                x >= canvas.offsetLeft &&
+                x <= canvas.offsetLeft + canvas.width &&
+                y >= canvas.offsetTop &&
+                y <= canvas.offsetTop + canvas.height;
+
+            ctxM.fillStyle = inGameArea
+                ? "rgba(255, 255, 255, 0.15)"   // внутри поля: 15% яркости
+                : "rgba(255, 255, 255, 0.9)";   // снаружи: почти белый
+
+            ctxM.fillText(text, x, y);
+
+            if (y > matrixCanvas.height && Math.random() > 0.975) {
                 drops[i] = 0;
             }
             drops[i]++;
