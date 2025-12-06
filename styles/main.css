@@ -360,6 +360,11 @@ body::after {
   display: block;
   margin: 0 auto;
   box-shadow: var(--glow), 0 8px 32px rgba(0, 0, 0, 0.5);
+  /* ЗМІНЕНО: Додано фіксовані розміри для canvas */
+  width: 800px;
+  height: 600px;
+  /* Опціонально: максимальна ширина для мобільних пристроїв */
+  max-width: 100%; 
 }
 
 /* Starting message */
@@ -375,3 +380,4 @@ body::after {
   font-weight: 600;
   border: 2px solid var(--btn-border);
   box-shadow: var(--glow);
+}
