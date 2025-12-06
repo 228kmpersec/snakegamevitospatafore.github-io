@@ -7,7 +7,9 @@
   --glow: 0 0 20px rgba(0, 255, 0, 0.8), 0 0 40px rgba(0, 255, 0, 0.5);
 }
 
-*{box-sizing:border-box}
+*{
+  box-sizing:border-box;
+}
 
 html,body{
   height:100%;
@@ -19,7 +21,8 @@ body{
   background: var(--bg);
   background-attachment: fixed;
   color:var(--text);
-  overflow: hidden;
+  overflow-x: hidden; /* Тільки горизонтальний скрол заборонено */
+  min-height: 100vh;
 }
 
 /* Анімований фон */
@@ -32,6 +35,7 @@ body::before {
     radial-gradient(circle at 80% 80%, rgba(0, 255, 0, 0.05) 0%, transparent 50%);
   animation: bgPulse 8s ease-in-out infinite;
   pointer-events: none;
+  z-index: 0; /* Під всім контентом */
 }
 
 @keyframes bgPulse {
@@ -53,6 +57,7 @@ body::after {
   );
   pointer-events: none;
   opacity: 0.5;
+  z-index: 1; /* Поверх фону, але під контентом */
 }
 
 /* Fullscreen centered menu */
@@ -97,6 +102,7 @@ body::after {
   backdrop-filter: blur(10px);
   text-shadow: 0 0 10px currentColor;
   animation: pulse 2s ease-in-out infinite;
+  z-index: 1; /* Над псевдоелементом */
 }
 
 /* Анімований градієнт на кнопці */
@@ -107,10 +113,11 @@ body::after {
   background: linear-gradient(
     45deg,
     transparent 30%,
-    rgba(0, 255, 0, 0.2) 50%,
+    rgba(0, 255, 0, 0.15) 50%, /* Зменшив непрозорість */
     transparent 70%
   );
-  animation: shimmer 3s infinite;
+  animation: shimmer 4s infinite; /* Збільшив час для плавності */
+  z-index: -1; /* Під текстом кнопки */
 }
 
 @keyframes shimmer {
@@ -129,7 +136,7 @@ body::after {
   transform: translateY(-8px) scale(1.05);
   box-shadow: var(--glow), 0 20px 60px rgba(0, 255, 0, 0.3);
   filter: brightness(1.2);
-  animation: none;
+  animation: none; /* Зупиняємо pulse при hover */
 }
 
 .play-button:active{ 
@@ -138,12 +145,27 @@ body::after {
 }
 
 /* Hidden helper */
-.hidden{ display:none !important; }
+.hidden{ 
+  display:none !important; 
+}
 
 /* placeholder area where game canvas will be created */
 .game-root{ 
   position:relative; 
-  min-height:100vh; 
+  min-height:100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 10; /* Над фоновими ефектами */
+}
+
+/* Стилі для canvas */
+.game-root canvas {
+  display: block;
+  margin: 0 auto;
+  box-shadow: var(--glow), 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 /* small starting message */
@@ -161,6 +183,7 @@ body::after {
   box-shadow: var(--glow);
   color: var(--text);
   animation: slideDown 0.5s ease;
+  z-index: 1001; /* Над меню */
 }
 
 @keyframes slideDown {
@@ -172,4 +195,35 @@ body::after {
     transform: translateX(-50%) translateY(0);
     opacity: 1;
   }
+}
+
+/* Адаптивність для маленьких екранів */
+@media (max-width: 480px) {
+  .play-button {
+    font-size: clamp(24px, 7vw, 48px);
+    letter-spacing: 2px;
+  }
+  
+  .game-root {
+    padding: 10px;
+  }
+  
+  .starting-msg {
+    font-size: 14px;
+    padding: 10px 20px;
+  }
+}
+
+/* Додаткові утиліти */
+.fade-in {
+  animation: fadeIn 0.5s ease;
+}
+
+.fade-out {
+  animation: fadeOut 0.5s ease;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
