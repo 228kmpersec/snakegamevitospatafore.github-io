@@ -27,7 +27,10 @@
   </div>
 
   <!-- Game root -->
-  <main id="game-root" class="game-root hidden"></main>
+  <main id="game-root" class="game-root hidden">
+    <!-- Тут будет твоя игра -->
+    <p style="color:white; text-align:center; margin-top:50px;">Игра запущена!</p>
+  </main>
 
   <!-- Contact / Discord Modal -->
   <div id="contact-modal" class="modal hidden">
@@ -35,12 +38,13 @@
       <button class="modal-close" id="modal-close">&times;</button>
       <h2 id="modal-title">Contact</h2>
       <p id="modal-email">Email: <a href="mailto:your@email.com">😬😬😬😬😬</a></p>
-      <p id="modal-github">GitHub: <a href="https://github.com/228kmpersec" target="_blank">@228kmpersec</a></p>
+      <p id="modal-github">GitHub: <a href="https://github.com/yourusername" target="_blank">@228kmpersec</a></p>
     </div>
   </div>
 
   <!-- Scripts -->
   <script>
+    // Модальное окно
     const contactBtn = document.getElementById('btn-contact');
     const discordBtn = document.getElementById('btn-discord');
     const modal = document.getElementById('contact-modal');
@@ -49,7 +53,6 @@
     const modalEmail = document.getElementById('modal-email');
     const modalGithub = document.getElementById('modal-github');
 
-    // Кнопка Contact
     contactBtn.addEventListener('click', () => {
       modalTitle.textContent = 'Contact';
       modalEmail.innerHTML = 'Email: <a href="mailto:your@email.com">😬😬😬😬😬</a>';
@@ -57,7 +60,6 @@
       modal.classList.remove('hidden');
     });
 
-    // Кнопка Discord
     discordBtn.addEventListener('click', () => {
       modalTitle.textContent = 'Discord';
       modalEmail.innerHTML = 'Discord: camoomcoc';
@@ -65,9 +67,18 @@
       modal.classList.remove('hidden');
     });
 
-    // Закрытие модального окна
     modalClose.addEventListener('click', () => {
       modal.classList.add('hidden');
+    });
+
+    // Кнопка PLAY
+    const playBtn = document.getElementById('btn-play');
+    const gameRoot = document.getElementById('game-root');
+    const menu = document.getElementById('menu');
+
+    playBtn.addEventListener('click', () => {
+      menu.classList.add('hidden'); // прячем меню
+      gameRoot.classList.remove('hidden'); // показываем игру
     });
   </script>
 </body>
