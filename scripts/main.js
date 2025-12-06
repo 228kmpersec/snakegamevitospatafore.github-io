@@ -1,360 +1,519 @@
-// Snake game with Blood Moon theme
-// Creates a canvas inside #game-root and runs a fixed-timestep loop.
-
-(function () {
-  const root = document.getElementById('game-root');
-  
-  if (!root) {
-    console.error('game-root element not found');
-    return;
-  }
-
-  let canvas = null;
-  let ctx = null;
-  let keyboardListener = null;
-
-  // game config
-  const config = {
-    sizeCell: 16,
-    sizeBerry: 4,
-    UPS: 15 // logical updates per second
-  };
-  const TICK = 1000 / config.UPS;
-
-  // Blood Moon colors 🌙🔴
-  const colors = {
-    bg: '#1a0a0f', // Dark burgundy background
-    snakeHead: '#ff4d6d', // Bright red-pink
-    snakeBody: '#c43d5a', // Darker red
-    berry: '#ff0040', // Bright crimson
-    text: '#ff4d6d', // Red-pink text
-    grid: 'rgba(255, 77, 109, 0.1)' // Subtle red grid
-  };
-
-  // snake state
-  let snake = {
-    x: 0,
-    y: 0,
-    dx: 0,
-    dy: 0,
-    tails: [],
-    maxTails: 3
-  };
-
-  let berry = { x: 0, y: 0 };
-  let score = 0;
-
-  // loop control
-  let lastTime = 0;
-  let accumulator = 0;
-  let running = false;
-  let gameInitialized = false;
-
-  // expose startGame globally so menu.js can call it
-  window.startGame = startGame;
-
-  function initCanvas() {
-    // Remove old canvas if exists
-    if (canvas) {
-      canvas.remove();
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SNAKE // NOIR_PROTOCOL</title>
+  <style>
+    /* ====== CYBERPUNK NOIR THEME 📼⬛ ====== */
+    :root {
+      --bg: #050505;
+      --text: #e0e0e0;
+      --accent: #ffffff;
+      --btn-bg: #000000;
+      --btn-border: #ffffff;
+      /* Холодное белое свечение */
+      --glow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 20px rgba(255, 255, 255, 0.2);
+      --scanline: rgba(255, 255, 255, 0.05);
     }
 
-    // Create new canvas with Blood Moon styling
-    canvas = document.createElement('canvas');
-    canvas.id = 'game-canvas';
-    canvas.width = 360;
-    canvas.height = 420;
-    canvas.style.width = '360px';
-    canvas.style.height = '420px';
-    canvas.style.display = 'block';
-    canvas.style.margin = '0 auto';
-    canvas.style.background = colors.bg;
-    canvas.style.border = '2px solid #ff4d6d';
-    canvas.style.borderRadius = '8px';
-    canvas.style.boxShadow = '0 0 25px rgba(255, 77, 109, 0.5), 0 8px 32px rgba(0, 0, 0, 0.5)';
-    root.appendChild(canvas);
-
-    ctx = canvas.getContext('2d');
-    gameInitialized = true;
-  }
-
-  function setupKeyboard() {
-    // Remove old listener if exists
-    if (keyboardListener) {
-      document.removeEventListener('keydown', keyboardListener);
+    * {
+      box-sizing: border-box;
     }
 
-    // Create new listener
-    keyboardListener = (e) => {
-      // Only handle keys when game is running
-      if (!running) return;
-
-      if (e.code === 'KeyW' || e.code === 'ArrowUp') {
-        if (snake.dy === 0) { 
-          snake.dx = 0; 
-          snake.dy = -config.sizeCell; 
-          e.preventDefault();
-        }
-      } else if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
-        if (snake.dx === 0) { 
-          snake.dx = -config.sizeCell; 
-          snake.dy = 0; 
-          e.preventDefault();
-        }
-      } else if (e.code === 'KeyS' || e.code === 'ArrowDown') {
-        if (snake.dy === 0) { 
-          snake.dx = 0; 
-          snake.dy = config.sizeCell; 
-          e.preventDefault();
-        }
-      } else if (e.code === 'KeyD' || e.code === 'ArrowRight') {
-        if (snake.dx === 0) { 
-          snake.dx = config.sizeCell; 
-          snake.dy = 0; 
-          e.preventDefault();
-        }
-      } else if (e.code === 'Escape') {
-        e.preventDefault();
-        pauseGame();
-      }
-    };
-
-    document.addEventListener('keydown', keyboardListener);
-  }
-
-  function startGame() {
-    // Prevent multiple game instances
-    if (running) {
-      console.warn('Game already running');
-      return;
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: 'Courier New', monospace, system-ui, Arial;
     }
 
-    // Initialize canvas if not done yet
-    if (!gameInitialized) {
-      initCanvas();
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      min-height: 100vh;
     }
 
-    // Setup keyboard controls
-    setupKeyboard();
-
-    // Reset state
-    score = 0;
-    snake.x = Math.floor((canvas.width / config.sizeCell) / 2) * config.sizeCell;
-    snake.y = Math.floor((canvas.height / config.sizeCell) / 2) * config.sizeCell;
-    snake.tails = [];
-    snake.maxTails = 3;
-    snake.dx = config.sizeCell;
-    snake.dy = 0;
-    
-    randomPositionBerry();
-
-    // Start loop
-    running = true;
-    lastTime = performance.now();
-    accumulator = 0;
-    requestAnimationFrame(loop);
-    
-    console.log('🌙 Blood Moon Snake started! (UPS=' + config.UPS + ')');
-  }
-
-  function stopGame() {
-    running = false;
-  }
-
-  function pauseGame() {
-    stopGame();
-    
-    // Call resetMenu to properly show menu and hide game
-    if (typeof window.resetMenu === 'function') {
-      window.resetMenu();
-    } else {
-      // Fallback if resetMenu doesn't exist
-      const menuEl = document.getElementById('menu');
-      if (menuEl) menuEl.classList.remove('hidden');
-    }
-  }
-
-  function loop(time) {
-    if (!running) return;
-    
-    let dt = time - lastTime;
-    lastTime = time;
-
-    if (dt > 1000) dt = 1000;
-    accumulator += dt;
-
-    while (accumulator >= TICK) {
-      update();
-      accumulator -= TICK;
+    /* Цифровая сетка на фоне страницы */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(var(--scanline) 1px, transparent 1px),
+        linear-gradient(90deg, var(--scanline) 1px, transparent 1px);
+      background-size: 40px 40px;
+      background-position: center;
+      z-index: 0;
+      pointer-events: none;
     }
 
-    render();
-    requestAnimationFrame(loop);
-  }
-
-  function update() {
-    snake.x += snake.dx;
-    snake.y += snake.dy;
-
-    collisionBorder();
-
-    snake.tails.unshift({ x: snake.x, y: snake.y });
-    if (snake.tails.length > snake.maxTails) snake.tails.pop();
-
-    const head = snake.tails[0];
-    if (head.x === berry.x && head.y === berry.y) {
-      snake.maxTails++;
-      score++;
-      randomPositionBerry();
+    /* Эффект старого ЭЛТ монитора (виньетка) */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle, transparent 60%, black 100%);
+      pointer-events: none;
+      z-index: 2;
     }
 
-    for (let i = 1; i < snake.tails.length; i++) {
-      if (head.x === snake.tails[i].x && head.y === snake.tails[i].y) {
-        // game over
-        gameOver();
-        break;
-      }
+    /* Fullscreen menu */
+    .menu {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 1000;
+      backdrop-filter: blur(5px);
     }
-  }
 
-  function render() {
-    if (!ctx) return;
-
-    // Clear with dark background
-    ctx.fillStyle = colors.bg;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    drawGridDots();
-    
-    // Draw berry with crimson glow effect
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = colors.berry;
-    ctx.beginPath();
-    ctx.fillStyle = colors.berry;
-    ctx.arc(berry.x + config.sizeCell / 2, berry.y + config.sizeCell / 2, config.sizeBerry, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    // Draw snake with red glow
-    snake.tails.forEach((cell, idx) => {
-      if (idx === 0) {
-        // Head - bright red-pink with glow
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = colors.snakeHead;
-        ctx.fillStyle = colors.snakeHead;
-      } else {
-        // Body - darker red
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = colors.snakeBody;
-        ctx.fillStyle = colors.snakeBody;
-      }
-      ctx.fillRect(cell.x + 1, cell.y + 1, config.sizeCell - 2, config.sizeCell - 2);
-    });
-    ctx.shadowBlur = 0;
-
-    // Draw score with red glow
-    ctx.shadowBlur = 12;
-    ctx.shadowColor = colors.text;
-    ctx.fillStyle = colors.text;
-    ctx.font = "bold 16px 'Courier New', monospace";
-    ctx.textAlign = "left";
-    ctx.fillText("SCORE: " + score, 10, 20);
-    ctx.shadowBlur = 0;
-  }
-
-  function drawGridDots() {
-    if (!ctx) return;
-    
-    const gap = 20;
-    ctx.fillStyle = colors.grid;
-    const r = 1;
-    for (let y = gap; y < canvas.height; y += gap) {
-      for (let x = gap; x < canvas.width; x += gap) {
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
+    /* Menu Container */
+    .menu-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 40px;
+      padding: 60px;
+      border: 2px solid var(--accent);
+      background: #000;
+      box-shadow: 10px 10px 0px #222;
+      min-width: 300px;
     }
-  }
 
-  function randomPositionBerry() {
-    if (!canvas) return;
-    
-    const cols = Math.floor(canvas.width / config.sizeCell);
-    const rows = Math.floor(canvas.height / config.sizeCell);
-    
-    let attempts = 0;
-    let validPosition = false;
-    
-    // Try to find a position not on snake's body
-    while (!validPosition && attempts < 100) {
-      berry.x = getRandomInt(0, cols) * config.sizeCell;
-      berry.y = getRandomInt(0, rows) * config.sizeCell;
+    /* Menu Title - Глитч эффект */
+    .menu-title {
+      font-size: clamp(48px, 10vw, 86px);
+      font-weight: 900;
+      letter-spacing: 12px;
+      margin: 0;
+      color: var(--accent);
+      text-transform: uppercase;
+      text-shadow: 4px 4px 0px #333;
+      position: relative;
+    }
+
+    .menu-title::before {
+      content: '> SYSTEM_READY';
+      position: absolute;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 14px;
+      letter-spacing: 4px;
+      opacity: 0.7;
+      white-space: nowrap;
+    }
+
+    /* Play button wrapper */
+    .play-button-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+    }
+
+    /* Play button - Строгий стиль */
+    .play-button {
+      padding: 20px 60px;
+      background: #000;
+      color: var(--accent);
+      border: 4px solid var(--btn-border);
+      font-weight: 900;
+      font-size: 32px;
+      letter-spacing: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.1s steps(2);
+      box-shadow: 8px 8px 0px #333; /* Жесткая тень */
+      text-transform: uppercase;
+      font-family: 'Courier New', monospace;
+    }
+
+    .play-button:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 10px 10px 0px var(--accent);
+      background: var(--accent);
+      color: #000;
+    }
+
+    .play-button:active {
+      transform: translate(4px, 4px);
+      box-shadow: 2px 2px 0px #333;
+    }
+
+    /* Menu Navigation */
+    .menu-nav {
+      display: flex;
+      gap: 20px;
+    }
+
+    .menu-link {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 10px 20px;
+      border: 1px solid transparent;
+      text-transform: uppercase;
+      transition: all 0.2s;
+    }
+
+    .menu-link:hover {
+      background: var(--accent);
+      color: #000;
+      box-shadow: 4px 4px 0px #333;
+    }
+
+    /* Modal - Терминал стиль */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    .modal-content {
+      background: #000;
+      border: 2px solid var(--accent);
+      padding: 40px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 15px 15px 0px #222;
+      font-family: 'Courier New', monospace;
+    }
+
+    .modal-content h2 {
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 10px;
+      margin-top: 0;
+      text-transform: uppercase;
+    }
+
+    .modal-content a {
+      color: #fff;
+      text-decoration: underline;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 30px;
+      cursor: pointer;
+    }
+
+    .modal-close:hover {
+      color: var(--accent);
+    }
+
+    /* Game canvas */
+    .game-root {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      z-index: 10;
+    }
+
+    .game-root canvas {
+      border: 4px solid var(--accent);
+      box-shadow: var(--glow);
+      width: 800px;
+      height: 600px;
+      max-width: 100%;
+      background: #000;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <!-- Fullscreen menu -->
+  <div id="menu" class="menu">
+    <div class="menu-container">
+      <!-- Logo/Title -->
+      <h1 class="menu-title">SNAKE</h1>
       
-      validPosition = true;
-      for (let segment of snake.tails) {
-        if (segment.x === berry.x && segment.y === berry.y) {
-          validPosition = false;
-          break;
-        }
-      }
-      attempts++;
+      <!-- Main Play Button -->
+      <div class="play-button-wrapper">
+        <button id="btn-play" class="play-button">INITIALIZE</button>
+      </div>
+      
+      <!-- Navigation Links -->
+      <nav class="menu-nav">
+        <a href="#" class="menu-link" onclick="alert('Discord link placeholder')">
+          UPLINK
+        </a>
+        <a href="#contact" class="menu-link" id="btn-contact">
+          DATA
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Game root -->
+  <main id="game-root" class="game-root hidden"></main>
+
+  <!-- Contact Modal -->
+  <div id="contact-modal" class="modal hidden">
+    <div class="modal-content">
+      <button class="modal-close" id="modal-close">&times;</button>
+      <h2>SYSTEM DATA</h2>
+      <p>DEV: <a href="mailto:your@email.com">ADMIN</a></p>
+      <p>REPO: <a href="#" target="_blank">GITHUB_ACCESS</a></p>
+    </div>
+  </div>
+
+ <!-- Script Block -->
+<script>
+    // --- MAIN.JS LOGIC START ---
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const gameRoot = document.getElementById('game-root');
+
+    // Настройки игры
+    const GRID_SIZE = 20; 
+    let TILE_COUNT_X = 40;
+    let TILE_COUNT_Y = 30;
+
+    // === ЦВЕТА (CYBERPUNK NOIR) ===
+    const COLOR_BG = '#000000';         
+    const COLOR_SNAKE = '#ffffff';      
+    const COLOR_FOOD = '#ffffff';       
+    const COLOR_GRID = '#1a1a1a';       
+
+    // Переменные состояния
+    let snake = [];
+    let food = { x: 10, y: 10 };
+    let dx = 0;
+    let dy = 0;
+    let score = 0;
+    let gameInterval;
+    let isGameRunning = false;
+
+    function resizeCanvas() {
+        const width = Math.min(800, window.innerWidth - 40);
+        const height = Math.min(600, window.innerHeight - 40);
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        TILE_COUNT_X = Math.floor(width / GRID_SIZE);
+        TILE_COUNT_Y = Math.floor(height / GRID_SIZE);
     }
-  }
 
-  function collisionBorder() {
-    if (!canvas) return;
-    
-    if (snake.x < 0) snake.x = canvas.width - config.sizeCell;
-    else if (snake.x >= canvas.width) snake.x = 0;
-    if (snake.y < 0) snake.y = canvas.height - config.sizeCell;
-    else if (snake.y >= canvas.height) snake.y = 0;
-  }
+    function initGame() {
+        gameRoot.innerHTML = ''; 
+        gameRoot.appendChild(canvas);
+        resizeCanvas();
+        
+        // Старт в центре
+        const centerX = Math.floor(TILE_COUNT_X / 2);
+        const centerY = Math.floor(TILE_COUNT_Y / 2);
 
-  function gameOver() {
-    stopGame();
-    
-    if (!ctx || !canvas) return;
-    
-    // Draw game over screen with Blood Moon colors
-    ctx.fillStyle = 'rgba(26, 10, 15, 0.92)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Game Over text with red glow
-    ctx.shadowBlur = 30;
-    ctx.shadowColor = '#ff0040';
-    ctx.fillStyle = '#ff0040';
-    ctx.font = "bold 32px 'Courier New', monospace";
-    ctx.textAlign = "center";
-    ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 40);
-    
-    // Final score
-    ctx.shadowColor = colors.text;
-    ctx.fillStyle = colors.text;
-    ctx.font = "bold 24px 'Courier New', monospace";
-    ctx.fillText("SCORE: " + score, canvas.width / 2, canvas.height / 2 + 10);
-    
-    // Instructions
-    ctx.shadowBlur = 12;
-    ctx.font = "16px 'Courier New', monospace";
-    ctx.fillText("Returning to menu...", canvas.width / 2, canvas.height / 2 + 50);
-    ctx.shadowBlur = 0;
-    
-    // Use resetMenu to properly reset everything
-    setTimeout(() => {
-      if (typeof window.resetMenu === 'function') {
-        window.resetMenu();
-      } else {
-        // Fallback
-        const menuEl = document.getElementById('menu');
-        if (menuEl) menuEl.classList.remove('hidden');
-      }
-    }, 1500);
-  }
+        snake = [
+            { x: centerX, y: centerY },
+            { x: centerX - 1, y: centerY },
+            { x: centerX - 2, y: centerY }
+        ];
+        
+        score = 0;
+        dx = 1; 
+        dy = 0;
+        
+        placeFood();
+        document.addEventListener('keydown', handleInput);
+        
+        if (gameInterval) clearInterval(gameInterval);
+        gameInterval = setInterval(gameLoop, 100); 
+        isGameRunning = true;
+    }
 
-  function getRandomInt(min, max) {
-    return Math.floor(Math.random() * (max - min) + min);
-  }
+    // Экспорт для меню
+    window.startGame = initGame;
 
-  console.log('🌙 Blood Moon Snake game initialized');
-})();
+    function gameLoop() {
+        if (!isGameRunning) return;
+        update();
+        draw();
+    }
+
+    function update() {
+        const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+        
+        // Телепорт через стены
+        if (head.x < 0) head.x = TILE_COUNT_X - 1;
+        if (head.x >= TILE_COUNT_X) head.x = 0;
+        if (head.y < 0) head.y = TILE_COUNT_Y - 1;
+        if (head.y >= TILE_COUNT_Y) head.y = 0;
+        
+        // Самоубийство
+        for (let part of snake) {
+            if (head.x === part.x && head.y === part.y) {
+                gameOver();
+                return;
+            }
+        }
+        
+        snake.unshift(head); 
+        
+        // Еда
+        if (head.x === food.x && head.y === food.y) {
+            score++;
+            placeFood();
+        } else {
+            snake.pop(); 
+        }
+    }
+
+    function draw() {
+        // 1. Фон
+        ctx.fillStyle = COLOR_BG;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // 2. Сетка
+        ctx.strokeStyle = COLOR_GRID;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = 0; x <= canvas.width; x += GRID_SIZE) {
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+        }
+        for (let y = 0; y <= canvas.height; y += GRID_SIZE) {
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+        }
+        ctx.stroke();
+        
+        // 3. Змейка
+        snake.forEach((part, index) => {
+            if (index === 0) {
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#ffffff';
+            } else {
+                ctx.fillStyle = '#cccccc';
+                ctx.shadowBlur = 0;
+            }
+            
+            ctx.fillRect(
+                part.x * GRID_SIZE + 1, 
+                part.y * GRID_SIZE + 1, 
+                GRID_SIZE - 2, 
+                GRID_SIZE - 2
+            );
+        });
+        ctx.shadowBlur = 0; 
+        
+        // 4. Еда
+        ctx.fillStyle = COLOR_FOOD;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = COLOR_FOOD;
+        const pad = 4;
+        ctx.fillRect(
+            food.x * GRID_SIZE + pad, 
+            food.y * GRID_SIZE + pad, 
+            GRID_SIZE - (pad*2), 
+            GRID_SIZE - (pad*2)
+        );
+        ctx.shadowBlur = 0;
+        
+        // 5. HUD (Счет)
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 20px "Courier New"';
+        ctx.fillText(`BUFFER: ${score}`, 20, 30);
+        
+        ctx.strokeStyle = 'white';
+        ctx.beginPath();
+        ctx.moveTo(20, 40);
+        ctx.lineTo(150, 40);
+        ctx.stroke();
+    }
+
+    function placeFood() {
+        food = {
+            x: Math.floor(Math.random() * TILE_COUNT_X),
+            y: Math.floor(Math.random() * TILE_COUNT_Y)
+        };
+        for (let part of snake) {
+            if (part.x === food.x && part.y === food.y) {
+                placeFood();
+                break;
+            }
+        }
+    }
+
+    function handleInput(e) {
+        switch(e.key) {
+            case 'ArrowUp': case 'w': case 'W': if (dy !== 1) { dx = 0; dy = -1; } break;
+            case 'ArrowDown': case 's': case 'S': if (dy !== -1) { dx = 0; dy = 1; } break;
+            case 'ArrowLeft': case 'a': case 'A': if (dx !== 1) { dx = -1; dy = 0; } break;
+            case 'ArrowRight': case 'd': case 'D': if (dx !== -1) { dx = 1; dy = 0; } break;
+        }
+    }
+
+    function gameOver() {
+        isGameRunning = false;
+        clearInterval(gameInterval);
+        alert(`CONNECTION LOST. DATA COLLECTED: ${score}`);
+        document.getElementById('menu').classList.remove('hidden');
+        gameRoot.classList.add('hidden');
+    }
+
+    window.addEventListener('resize', () => {
+        if (isGameRunning) {
+            resizeCanvas();
+            placeFood(); 
+        }
+    });
+
+    // --- MENU.JS LOGIC START ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const menu = document.getElementById('menu');
+        const gameRoot = document.getElementById('game-root');
+        const playBtn = document.getElementById('btn-play');
+        const contactBtn = document.getElementById('btn-contact');
+        const contactModal = document.getElementById('contact-modal');
+        const modalCloseBtn = document.getElementById('modal-close');
+
+        playBtn.addEventListener('click', () => {
+            menu.classList.add('hidden');
+            gameRoot.classList.remove('hidden');
+            if (window.startGame) window.startGame();
+        });
+
+        contactBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            contactModal.classList.remove('hidden');
+        });
+
+        modalCloseBtn.addEventListener('click', () => {
+            contactModal.classList.add('hidden');
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === contactModal) {
+                contactModal.classList.add('hidden');
+            }
+        });
+    });
+</script>
+</body>
+</html>
