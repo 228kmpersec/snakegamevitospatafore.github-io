@@ -161,3 +161,65 @@ function gameOver() {
 
 window.initSnakeGame = initSnakeGame;
 window.stopSnakeGame = stopSnakeGame;
+
+// ===== МАТРИЦА ЭФФЕКТ (ПАДАЮЩИЕ СИМВОЛЫ) =====
+function createMatrixRain() {
+    const matrixCanvas = document.createElement('canvas');
+    matrixCanvas.id = 'matrix-bg';
+    matrixCanvas.style.position = 'fixed';
+    matrixCanvas.style.top = '0';
+    matrixCanvas.style.left = '0';
+    matrixCanvas.style.width = '100%';
+    matrixCanvas.style.height = '100%';
+    matrixCanvas.style.zIndex = '-1';
+    matrixCanvas.style.pointerEvents = 'none';
+    document.body.appendChild(matrixCanvas);
+
+    const ctx = matrixCanvas.getContext('2d');
+    matrixCanvas.width = window.innerWidth;
+    matrixCanvas.height = window.innerHeight;
+
+    const columns = Math.floor(matrixCanvas.width / 20);
+    const drops = Array(columns).fill(1);
+
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()';
+
+    function drawMatrix() {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+        ctx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+
+        ctx.fillStyle = '#00ff41'; // Зеленый цвет
+        ctx.font = '15px monospace';
+
+        for (let i = 0; i < drops.length; i++) {
+            const text = chars[Math.floor(Math.random() * chars.length)];
+            ctx.fillText(text, i * 20, drops[i] * 20);
+
+            if (drops[i] * 20 > matrixCanvas.height && Math.random() > 0.975) {
+                drops[i] = 0;
+            }
+            drops[i]++;
+        }
+    }
+
+    setInterval(drawMatrix, 50);
+
+    window.addEventListener('resize', () => {
+        matrixCanvas.width = window.innerWidth;
+        matrixCanvas.height = window.innerHeight;
+    });
+}
+
+// Запускаем эффект только во время игры
+const originalInit = window.initSnakeGame;
+window.initSnakeGame = function() {
+    createMatrixRain();
+    originalInit();
+};
+
+const originalStop = window.stopSnakeGame;
+window.stopSnakeGame = function() {
+    const matrixCanvas = document.getElementById('matrix-bg');
+    if (matrixCanvas) matrixCanvas.remove();
+    originalStop();
+};
