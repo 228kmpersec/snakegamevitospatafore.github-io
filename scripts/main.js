@@ -109,15 +109,16 @@ function update() {
 
     draw();
 }
-
 // ================== ОТРИСОВКА ==================
 
 function draw() {
-    // убираем предыдущий кадр змейки, но не трогаем матрицу (она на другом канвасе)
+    console.log("draw frame"); // проверка
+
+    // убираем предыдущий кадр змейки
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // лёгкое затемнение (чем меньше число, тем больше видно матрицу)
-    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+    // лёгкое затемнение (стекло)
+    ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // змейка
@@ -245,4 +246,13 @@ function createMatrixRain() {
     }
 
     setInterval(drawMatrix, 50);
+}
+
+function draw() {
+    console.log("draw frame"); // проверка
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ...
 }
