@@ -11,9 +11,6 @@
     console.warn('Menu elements not found');
     return;
   }
-  
-  console.log('✅ Play button found:', btn);
-  console.log('✅ Button parent:', btn.parentElement.className);
 
   let isGameRunning = false;
 
