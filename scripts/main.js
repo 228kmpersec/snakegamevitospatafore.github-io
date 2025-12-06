@@ -100,25 +100,19 @@ function update() {
         scoreEl.innerText = score;
         spawnFood();
     } else {
-        if (velocityX !== 0 || velocityY !== 0) {
-            snake.pop();
-        } else {
-            snake.pop();
-        }
+        snake.pop();
     }
 
     draw();
 }
+
 // ================== ОТРИСОВКА ==================
 
 function draw() {
-    console.log("draw frame"); // проверка
-
-    // убираем предыдущий кадр змейки
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // лёгкое затемнение (стекло)
-    ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+    // «стекло» поверх матрицы
+    ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // змейка
@@ -205,7 +199,7 @@ function keyDownEvent(e) {
 
 function gameOver() {
     alert(`GAME OVER\nSCORE: ${score}`);
-    stopSnakeGame();
+    window.stopSnakeGame();
     if (window.returnToMenu) window.returnToMenu();
 }
 
@@ -246,13 +240,4 @@ function createMatrixRain() {
     }
 
     setInterval(drawMatrix, 50);
-}
-
-function draw() {
-    console.log("draw frame"); // проверка
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ...
 }
