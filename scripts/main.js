@@ -113,9 +113,8 @@ function update() {
 // ================== ОТРИСОВКА ==================
 
 function draw() {
-    // ЕЩЁ ПРОЗРАЧНЕЕ (почти стекло)
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // вообще очищаем
-    ctx.fillStyle = "rgba(0, 0, 0, 0.05)";            // очень слабое затемнение
+    // Лёгкое затемнение вместо полной очистки
+    ctx.fillStyle = "rgba(0, 0, 0, 0.4)"; // было 0.05 — теперь 0.4
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Змейка
