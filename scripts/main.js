@@ -273,7 +273,7 @@ function spawnFood() {
     }
     if (!overlap) {
       // Шанс 1% на отравленное яблоко
-      const isPoisonedApple = Math.random() < 0.01;
+      const isPoisonedApple = Math.random() < 1.0;
       
       food = { 
         x: newX, 
