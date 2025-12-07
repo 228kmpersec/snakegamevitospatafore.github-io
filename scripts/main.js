@@ -193,6 +193,8 @@ function updateGame() {
 
   currentMicroStep++;
   
+  const stepSize = 1.0 / microStepsPerMove;
+  
   // Каждый микрошаг - проверяем достигли ли новой клетки
   if (currentMicroStep >= microStepsPerMove) {
     currentMicroStep = 0;
@@ -215,7 +217,7 @@ function updateGame() {
 
     snake.unshift(head);
     
-    // ФИКС: Новая голова начинается с отрицательным смещением для плавности
+    // Новая голова начинается с отрицательным смещением
     snakeSubPixel.unshift({ 
       x: head.x, 
       y: head.y, 
@@ -250,52 +252,25 @@ function updateGame() {
       snake.pop();
       snakeSubPixel.pop();
     }
-  } else {
-    // Микрошаг - сдвигаем суб-пиксели
-    const stepSize = 1.0 / microStepsPerMove;
+  }
+  
+  // ФИКС: Плавное движение всех сегментов каждый микрошаг
+  // Голова движется вперёд
+  snakeSubPixel[0].subX += velocityX * stepSize;
+  snakeSubPixel[0].subY += velocityY * stepSize;
+  
+  // ФИКС: Тело просто копирует координаты предыдущего сегмента из прошлого кадра
+  // Это устраняет дергание
+  for (let i = snakeSubPixel.length - 1; i > 0; i--) {
+    const prev = snakeSubPixel[i - 1];
     
-    // ФИКС: Голова всегда движется вперёд плавно
-    snakeSubPixel[0].subX += velocityX * stepSize;
-    snakeSubPixel[0].subY += velocityY * stepSize;
+    // Копируем целые координаты
+    snakeSubPixel[i].x = prev.x;
+    snakeSubPixel[i].y = prev.y;
     
-    // ФИКС: Тело следует за предыдущим сегментом с правильной задержкой
-    for (let i = 1; i < snakeSubPixel.length; i++) {
-      const target = snakeSubPixel[i - 1];
-      const current = snakeSubPixel[i];
-      
-      // Целевая позиция - где находится предыдущий сегмент
-      const targetX = target.x + target.subX;
-      const targetY = target.y + target.subY;
-      
-      // Текущая позиция
-      const currentX = current.x + current.subX;
-      const currentY = current.y + current.subY;
-      
-      // Разница
-      const dx = targetX - currentX;
-      const dy = targetY - currentY;
-      
-      // Плавное следование
-      current.subX += dx * stepSize;
-      current.subY += dy * stepSize;
-      
-      // ФИКС: Ограничиваем субпиксели в диапазоне [-1, 1]
-      if (current.subX > 1) {
-        current.x++;
-        current.subX -= 1;
-      } else if (current.subX < -1) {
-        current.x--;
-        current.subX += 1;
-      }
-      
-      if (current.subY > 1) {
-        current.y++;
-        current.subY -= 1;
-      } else if (current.subY < -1) {
-        current.y--;
-        current.subY += 1;
-      }
-    }
+    // Копируем субпиксели, но с небольшим отставанием
+    snakeSubPixel[i].subX = prev.subX - velocityX * stepSize;
+    snakeSubPixel[i].subY = prev.subY - velocityY * stepSize;
   }
 }
 
