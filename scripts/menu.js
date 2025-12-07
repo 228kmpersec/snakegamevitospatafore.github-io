@@ -15,6 +15,11 @@ const btnContact = document.getElementById("btn-contact");
 const modal = document.getElementById("contact-modal");
 const modalClose = document.getElementById("modal-close");
 
+// Game Over элементы
+const gameOverModal = document.getElementById("game-over-modal");
+const btnRetry = document.getElementById("btn-retry");
+const btnMainMenu = document.getElementById("btn-main-menu");
+
 if (!menuEl || !btnPlay || !modeWrapper) {
   console.warn("Menu elements missing");
   return;
@@ -22,6 +27,8 @@ if (!menuEl || !btnPlay || !modeWrapper) {
 
 // ---------- РАСКРЫТИЕ ВЫБОРА РЕЖИМА ----------
 let modesOpened = false;
+let lastMode = "default"; // сохраняем последний выбранный режим для retry
+let lastSpeed = 40;
 
 btnPlay.addEventListener("click", () => {
   if (!modesOpened) {
@@ -56,12 +63,18 @@ function startGameWithMode(mode, speedMs) {
     return;
   }
 
+  lastMode = mode;
+  lastSpeed = speedMs;
+  
   window.gameSpeed = speedMs;
   window.gameMode = mode; // передаём режим
 
-  // Скрываем меню, показываем игру
+  // Скрываем меню и Game Over, показываем игру
   menuEl.classList.add("hidden");
   gameRoot.classList.remove("hidden");
+  if (gameOverModal) {
+    gameOverModal.classList.add("hidden");
+  }
 
   // Старт игры
   window.initSnakeGame();
@@ -71,6 +84,9 @@ function startGameWithMode(mode, speedMs) {
 function showMenu() {
   gameRoot.classList.add("hidden");
   menuEl.classList.remove("hidden");
+  if (gameOverModal) {
+    gameOverModal.classList.add("hidden");
+  }
 
   // Сброс состояния меню
   modesOpened = false;
@@ -88,6 +104,21 @@ if (btnMenu) {
 
 // Чтобы игру могла завершать сама
 window.returnToMenu = showMenu;
+
+// ---------- GAME OVER КНОПКИ ----------
+if (btnRetry) {
+  btnRetry.addEventListener("click", () => {
+    // Перезапускаем игру с тем же режимом
+    startGameWithMode(lastMode, lastSpeed);
+  });
+}
+
+if (btnMainMenu) {
+  btnMainMenu.addEventListener("click", () => {
+    // Возврат в главное меню
+    showMenu();
+  });
+}
 
 // ---------- МОДАЛКА CONTACT ----------
 if (btnContact && modal && modalClose) {
