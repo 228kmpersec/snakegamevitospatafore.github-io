@@ -491,7 +491,7 @@ window.initSnakeGame = function () {
   isGameRunning = true;
   
   requestAnimationFrame(gameLoop);
-  createMatrixRain();
+  createStarryBackground();
 };
 
 window.stopSnakeGame = function () {
@@ -1177,42 +1177,50 @@ function gameOver(fromPoison) {
   }
 }
 
-// Матрица на заднем фоне
-function createMatrixRain() {
-  let matrixCanvas = document.getElementById("matrix-bg");
+function createStarryBackground() {
+  let bgCanvas = document.getElementById("matrix-bg");
   
-  if (!matrixCanvas) {
-    matrixCanvas = document.createElement("canvas");
-    matrixCanvas.id = "matrix-bg";
-    matrixCanvas.style.position = "fixed";
-    matrixCanvas.style.inset = "0";
-    matrixCanvas.style.zIndex = "-1";
-    document.body.appendChild(matrixCanvas);
+  if (!bgCanvas) {
+    bgCanvas = document.createElement("canvas");
+    bgCanvas.id = "matrix-bg";
+    bgCanvas.style.position = "fixed";
+    bgCanvas.style.inset = "0";
+    bgCanvas.style.zIndex = "-1";
+    document.body.appendChild(bgCanvas);
   }
 
-  const ctxM = matrixCanvas.getContext("2d");
-  matrixCanvas.width = window.innerWidth;
-  matrixCanvas.height = window.innerHeight;
+  const ctxBg = bgCanvas.getContext("2d");
+  bgCanvas.width = window.innerWidth;
+  bgCanvas.height = window.innerHeight;
 
-  const columns = Math.floor(matrixCanvas.width / 20);
-  const drops = Array(columns).fill(1);
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()";
-
-  function drawMatrix() {
-    ctxM.fillStyle = "rgba(0, 0, 0, 0.3)";
-    ctxM.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
-    ctxM.fillStyle = "rgba(255, 255, 255, 0.9)";
-    ctxM.font = "18px monospace";
-
-    for (let i = 0; i < drops.length; i++) {
-      const text = chars[Math.floor(Math.random() * chars.length)];
-      ctxM.fillText(text, i * 20, drops[i] * 20);
-      if (drops[i] * 20 > matrixCanvas.height && Math.random() > 0.975) {
-        drops[i] = 0;
-      }
-      drops[i]++;
-    }
+  const stars = [];
+  for (let i = 0; i < 200; i++) {
+    stars.push({
+      x: Math.random() * bgCanvas.width,
+      y: Math.random() * bgCanvas.height,
+      radius: Math.random() * 2,
+      speed: Math.random() * 0.5 + 0.1,
+      opacity: Math.random()
+    });
   }
 
-  setInterval(drawMatrix, 50);
+  function drawStars() {
+    ctxBg.fillStyle = "rgba(0, 0, 0, 0.1)";
+    ctxBg.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+    stars.forEach(star => {
+      star.opacity += (Math.random() - 0.5) * 0.1;
+      star.opacity = Math.max(0.1, Math.min(1, star.opacity));
+      
+      ctxBg.beginPath();
+      ctxBg.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+      ctxBg.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+      ctxBg.fill();
+      
+      star.y += star.speed;
+      if (star.y > bgCanvas.height) star.y = 0;
+    });
+  }
+
+  setInterval(drawStars, 30);
 }
