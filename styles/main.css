@@ -445,14 +445,13 @@ canvas {
   }
 }
 
-/* Серьёзный шрифт для POISONED */
+/* Серьёзный шрифт для POISONED - меньше свечение */
 .game-over-title.poisoned {
   font-family: "Impact", "Arial Black", sans-serif !important;
   letter-spacing: 12px !important;
   text-transform: uppercase;
   font-weight: 900 !important;
   text-shadow:
-    0 0 30px rgba(255, 0, 0, 1),
-    0 0 60px rgba(255, 0, 0, 0.8),
-    0 0 90px rgba(255, 0, 0, 0.6) !important;
+    0 0 10px rgba(255, 0, 0, 0.8),
+    0 0 20px rgba(255, 0, 0, 0.5) !important;
 }
