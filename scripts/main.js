@@ -20,9 +20,9 @@ let isDead = false;
 
 // Для плавного движения - микрошаги
 let lastMoveTime = 0;
-let baseMoveDelay = 40; // базовая скорость из режима
-let microStepDelay = 5; // как часто делаем микрошаг (5ms = 200 FPS)
-let microStepsPerMove = 8; // сколько микрошагов = 1 клетка
+let baseMoveDelay = 40;
+let microStepDelay = 5;
+let microStepsPerMove = 8;
 let currentMicroStep = 0;
 
 // Позиции в суб-пикселях для плавности
@@ -214,7 +214,14 @@ function updateGame() {
     }
 
     snake.unshift(head);
-    snakeSubPixel.unshift({ x: head.x, y: head.y, subX: 0, subY: 0 });
+    
+    // ФИКС: Новая голова начинается с отрицательным смещением для плавности
+    snakeSubPixel.unshift({ 
+      x: head.x, 
+      y: head.y, 
+      subX: -velocityX, 
+      subY: -velocityY 
+    });
 
     // Еда
     if (head.x === food.x && head.y === food.y) {
@@ -247,19 +254,46 @@ function updateGame() {
     // Микрошаг - сдвигаем суб-пиксели
     const stepSize = 1.0 / microStepsPerMove;
     
-    for (let i = 0; i < snakeSubPixel.length; i++) {
-      if (i === 0) {
-        // Голова движется вперёд
-        snakeSubPixel[i].subX += velocityX * stepSize;
-        snakeSubPixel[i].subY += velocityY * stepSize;
-      } else {
-        // Тело следует за предыдущим сегментом
-        const target = snakeSubPixel[i - 1];
-        const dx = target.x + target.subX - (snakeSubPixel[i].x + snakeSubPixel[i].subX);
-        const dy = target.y + target.subY - (snakeSubPixel[i].y + snakeSubPixel[i].subY);
-        
-        snakeSubPixel[i].subX += dx * stepSize;
-        snakeSubPixel[i].subY += dy * stepSize;
+    // ФИКС: Голова всегда движется вперёд плавно
+    snakeSubPixel[0].subX += velocityX * stepSize;
+    snakeSubPixel[0].subY += velocityY * stepSize;
+    
+    // ФИКС: Тело следует за предыдущим сегментом с правильной задержкой
+    for (let i = 1; i < snakeSubPixel.length; i++) {
+      const target = snakeSubPixel[i - 1];
+      const current = snakeSubPixel[i];
+      
+      // Целевая позиция - где находится предыдущий сегмент
+      const targetX = target.x + target.subX;
+      const targetY = target.y + target.subY;
+      
+      // Текущая позиция
+      const currentX = current.x + current.subX;
+      const currentY = current.y + current.subY;
+      
+      // Разница
+      const dx = targetX - currentX;
+      const dy = targetY - currentY;
+      
+      // Плавное следование
+      current.subX += dx * stepSize;
+      current.subY += dy * stepSize;
+      
+      // ФИКС: Ограничиваем субпиксели в диапазоне [-1, 1]
+      if (current.subX > 1) {
+        current.x++;
+        current.subX -= 1;
+      } else if (current.subX < -1) {
+        current.x--;
+        current.subX += 1;
+      }
+      
+      if (current.subY > 1) {
+        current.y++;
+        current.subY -= 1;
+      } else if (current.subY < -1) {
+        current.y--;
+        current.subY += 1;
       }
     }
   }
