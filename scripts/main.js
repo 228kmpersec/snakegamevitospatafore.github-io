@@ -4,7 +4,7 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const scoreEl = document.getElementById("score-val");
 
-const GRID_SIZE = 25; // увеличен размер клетки (было 20)
+const GRID_SIZE = 25;
 let tileCountX = 20;
 let tileCountY = 20;
 
@@ -18,11 +18,15 @@ let isPoisoned = false;
 let poisonTimer = null;
 let isDead = false;
 
-// Для высокого FPS
+// Для плавного движения
 let lastMoveTime = 0;
-let moveDelay = 40; // задержка между ходами змеи (скорость игры)
+let moveDelay = 40; // будет делиться на микрошаги
+let microSteps = 4; // количество микрошагов между клетками
+let currentMicroStep = 0;
 let animationFrame = 0;
-let lastFrameTime = 0;
+
+// Позиции змеи в пикселях (не клетках)
+let snakePixelPositions = [];
 
 // Язык
 let tongueOut = false;
@@ -116,6 +120,8 @@ window.initSnakeGame = function () {
   document.addEventListener("keydown", keyDownEvent);
 
   snake = [{ x: 10, y: 10 }];
+  snakePixelPositions = [{ x: 10 * GRID_SIZE, y: 10 * GRID_SIZE }];
+  
   score = 0;
   scoreEl.innerText = score;
   velocityX = 0;
@@ -123,11 +129,11 @@ window.initSnakeGame = function () {
   isPoisoned = false;
   isDead = false;
   animationFrame = 0;
-  lastMoveTime = 0;
+  lastMoveTime = performance.now();
+  currentMicroStep = 0;
   tongueOut = false;
   
-  // Устанавливаем задержку в зависимости от режима
-  moveDelay = window.gameSpeed;
+  moveDelay = window.gameSpeed / microSteps;
   
   if (poisonTimer) {
     clearTimeout(poisonTimer);
@@ -142,9 +148,7 @@ window.initSnakeGame = function () {
   spawnFood();
   isGameRunning = true;
   
-  // Запускаем игровой цикл с высоким FPS
   requestAnimationFrame(gameLoop);
-  
   createMatrixRain();
 };
 
@@ -163,81 +167,86 @@ window.stopSnakeGame = function () {
   }
 };
 
-// ================== ИГРОВОЙ ЦИКЛ (высокий FPS) ==================
+// ================== ИГРОВОЙ ЦИКЛ ==================
 function gameLoop(currentTime) {
   if (!isGameRunning) return;
   
-  // Плавная анимация независимо от скорости игры
   animationFrame++;
   
-  // Обновляем логику игры только через определённые интервалы
-  if (currentTime - lastMoveTime >= moveDelay) {
+  const deltaTime = currentTime - lastMoveTime;
+  
+  if (deltaTime >= moveDelay) {
     lastMoveTime = currentTime;
     updateGame();
   }
   
-  // Рисуем каждый кадр для плавности
   draw();
-  
   requestAnimationFrame(gameLoop);
 }
 
 // ================== ОБНОВЛЕНИЕ ЛОГИКИ ИГРЫ ==================
 function updateGame() {
   if (isDead || isPoisoned) return;
+  
+  if (velocityX === 0 && velocityY === 0) return;
 
-  const head = { x: snake[0].x + velocityX, y: snake[0].y + velocityY };
+  // Микрошаг движения
+  currentMicroStep++;
+  
+  if (currentMicroStep >= microSteps) {
+    currentMicroStep = 0;
+    
+    // Полный шаг - переход на новую клетку
+    const head = { x: snake[0].x + velocityX, y: snake[0].y + velocityY };
 
-  // Столкновение со стеной
-  if (
-    head.x < 0 ||
-    head.x >= tileCountX ||
-    head.y < 0 ||
-    head.y >= tileCountY
-  ) {
-    startDeathAnimation(false);
-    return;
-  }
+    // Столкновение со стеной
+    if (
+      head.x < 0 ||
+      head.x >= tileCountX ||
+      head.y < 0 ||
+      head.y >= tileCountY
+    ) {
+      startDeathAnimation(false);
+      return;
+    }
 
-  // Столкновение с собой
-  for (let i = 0; i < snake.length; i++) {
-    if (head.x === snake[i].x && head.y === snake[i].y) {
-      if (velocityX !== 0 || velocityY !== 0) {
+    // Столкновение с собой
+    for (let i = 0; i < snake.length; i++) {
+      if (head.x === snake[i].x && head.y === snake[i].y) {
         startDeathAnimation(false);
         return;
       }
     }
-  }
 
-  snake.unshift(head);
+    snake.unshift(head);
 
-  // Еда
-  if (head.x === food.x && head.y === food.y) {
-    score++;
-    scoreEl.innerText = score;
-    
-    // Каждые 8 яблок - высовывается язык
-    if (score % 8 === 0) {
-      showTongue();
-    }
-    
-    if (food.isPoisoned) {
-      if (foodSound) foodSound.play();
-      isPoisoned = true;
+    // Еда
+    if (head.x === food.x && head.y === food.y) {
+      score++;
+      scoreEl.innerText = score;
       
-      poisonTimer = setTimeout(() => {
-        startDeathAnimation(true);
-      }, 2000);
+      if (score % 8 === 0) {
+        showTongue();
+      }
       
-      canvas.style.animation = "poisonShake 0.2s infinite";
+      if (food.isPoisoned) {
+        if (foodSound) foodSound.play();
+        isPoisoned = true;
+        
+        poisonTimer = setTimeout(() => {
+          startDeathAnimation(true);
+        }, 2000);
+        
+        canvas.style.animation = "poisonShake 0.2s infinite";
+        
+      } else {
+        if (foodSound) foodSound.play();
+      }
       
+      spawnFood();
     } else {
-      if (foodSound) foodSound.play();
+      snake.pop();
     }
-    
-    spawnFood();
-  } else {
-    snake.pop();
   }
 }
 
@@ -245,7 +254,6 @@ function updateGame() {
 function showTongue() {
   tongueOut = true;
   
-  // Язык убирается через 1 секунду
   if (tongueTimer) clearTimeout(tongueTimer);
   tongueTimer = setTimeout(() => {
     tongueOut = false;
@@ -322,12 +330,10 @@ function drawSnakePart(x, y, index, isHead) {
     const eyeSize = 4;
     const eyeOffset = size * 0.25;
     
-    // Глаза
-    if (velocityX > 0) { // вправо
+    if (velocityX > 0) {
       ctx.fillRect(size / 2 - 6, -eyeOffset, eyeSize, eyeSize);
       ctx.fillRect(size / 2 - 6, eyeOffset - eyeSize, eyeSize, eyeSize);
       
-      // Язык
       if (tongueOut) {
         ctx.strokeStyle = "#ff0066";
         ctx.lineWidth = 2;
@@ -338,7 +344,7 @@ function drawSnakePart(x, y, index, isHead) {
         ctx.lineTo(size / 2 + 8, 3);
         ctx.stroke();
       }
-    } else if (velocityX < 0) { // влево
+    } else if (velocityX < 0) {
       ctx.fillRect(-size / 2 + 2, -eyeOffset, eyeSize, eyeSize);
       ctx.fillRect(-size / 2 + 2, eyeOffset - eyeSize, eyeSize, eyeSize);
       
@@ -352,7 +358,7 @@ function drawSnakePart(x, y, index, isHead) {
         ctx.lineTo(-size / 2 - 8, 3);
         ctx.stroke();
       }
-    } else if (velocityY > 0) { // вниз
+    } else if (velocityY > 0) {
       ctx.fillRect(-eyeOffset, size / 2 - 6, eyeSize, eyeSize);
       ctx.fillRect(eyeOffset - eyeSize, size / 2 - 6, eyeSize, eyeSize);
       
@@ -366,7 +372,7 @@ function drawSnakePart(x, y, index, isHead) {
         ctx.lineTo(3, size / 2 + 8);
         ctx.stroke();
       }
-    } else if (velocityY < 0) { // вверх
+    } else if (velocityY < 0) {
       ctx.fillRect(-eyeOffset, -size / 2 + 2, eyeSize, eyeSize);
       ctx.fillRect(eyeOffset - eyeSize, -size / 2 + 2, eyeSize, eyeSize);
       
