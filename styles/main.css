@@ -234,11 +234,10 @@ body::after {
 }
 
 canvas {
-  border: 2px solid var(--primary);
-  box-shadow:
-    0 0 30px rgba(255, 255, 255, 0.3),
-    0 0 60px rgba(255, 255, 255, 0.1);
-  background: transparent; /* никакого белого */
+  /* убираем белую рамку и свечение */
+  border: none;
+  box-shadow: none;
+  background: transparent; /* можно оставить так */
 }
 
 /* UI поверх игры */
