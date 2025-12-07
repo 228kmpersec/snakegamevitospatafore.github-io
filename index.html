@@ -1,54 +1,69 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SNAKE</title>
-    <link rel="stylesheet" href="styles/main.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SNAKE – CYBERPUNK NOIR</title>
+  <link rel="stylesheet" href="styles/main-3.css" />
 </head>
 <body>
 
-    <!-- МЕНЮ -->
-    <div id="menu" class="menu">
-        <div class="menu-container">
-            <h1 class="menu-title">SNAKE</h1>
+  <!-- ====== МЕНЮ ====== -->
+  <div class="menu" id="menu">
+    <div class="menu-container">
+      <h1 class="menu-title">SNAKE</h1>
 
-            <!-- Обёртка трёх кнопок -->
-            <div class="play-button-wrapper" id="mode-wrapper">
-                <button class="mode-button mode-button-left" id="btn-easy">EASY</button>
+      <div class="play-button-wrapper" id="mode-wrapper">
+        <!-- EASY (левая) -->
+        <button class="mode-button mode-button-left" id="btn-easy">EASY</button>
 
-                <button id="btn-play" class="play-button">PLAY</button>
+        <!-- DEFAULT (центральная) -->
+        <button class="play-button" id="btn-play">PLAY</button>
 
-                <button class="mode-button mode-button-right" id="btn-hard">HARD</button>
-            </div>
+        <!-- HARD (правая) -->
+        <button class="mode-button mode-button-right" id="btn-hard">HARD</button>
+      </div>
 
-            <div class="menu-nav">
-                <a href="#" class="menu-link" id="btn-contact">CONTACT</a>
-                <a href="https://github.com/228kmpersec" target="_blank" class="menu-link">GITHUB</a>
-            </div>
-        </div>
+      <nav class="menu-nav">
+        <a href="#" class="menu-link" id="btn-contact">CONTACT</a>
+      </nav>
     </div>
+  </div>
 
-    <!-- ИГРОВОЙ ЭКРАН -->
-    <div id="game-root" class="game-root hidden">
-        <div class="ui-overlay">
-            <div class="score-board">SCORE: <span id="score-val">0</span></div>
-            <button id="btn-menu" class="back-btn">EXIT</button>
-        </div>
-        <canvas id="gameCanvas"></canvas>
+  <!-- ====== ИГРОВОЕ ПОЛЕ ====== -->
+  <div class="game-root hidden" id="game-root">
+    <div class="ui-overlay">
+      <button class="back-btn" id="btn-menu">EXIT</button>
+      <div>SCORE: <span id="score-val">0</span></div>
     </div>
+    <canvas id="gameCanvas"></canvas>
+  </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО -->
-    <div id="contact-modal" class="modal hidden">
-        <div class="modal-content">
-            <button id="modal-close" class="modal-close">&times;</button>
-            <h2>SYSTEM_MSG</h2>
-            <p>Dev: <span class="highlight">Student_Name</span></p>
-            <p>Project: <span class="highlight">LR-9</span></p>
-        </div>
+  <!-- ====== GAME OVER МЕНЮ ====== -->
+  <div class="game-over-modal hidden" id="game-over-modal">
+    <div class="game-over-content">
+      <h2 class="game-over-title">GAME OVER</h2>
+      <div class="game-over-score">
+        SCORE: <span id="final-score">0</span>
+      </div>
+      <div class="game-over-buttons">
+        <button class="game-over-btn" id="btn-retry">RETRY</button>
+        <button class="game-over-btn" id="btn-main-menu">MAIN MENU</button>
+      </div>
     </div>
+  </div>
 
-    <script src="scripts/menu.js"></script>
-    <script src="scripts/main.js"></script>
+  <!-- ====== МОДАЛКА CONTACT ====== -->
+  <div class="modal hidden" id="contact-modal">
+    <div class="modal-content">
+      <button class="modal-close" id="modal-close">&times;</button>
+      <h2>КОНТАКТЫ</h2>
+      <p>Telegram: <span class="highlight">@yourusername</span></p>
+      <p>GitHub: <span class="highlight">github.com/yourname</span></p>
+    </div>
+  </div>
+
+  <script src="scripts/main-4.js"></script>
+  <script src="scripts/menu-3.js"></script>
 </body>
 </html>
