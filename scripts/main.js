@@ -20,7 +20,7 @@ let poisonTimer = null;
 let isDead = false;
 
 // Эффекты фруктов
-let hasSecondChance = false; // Starberry эффект
+let hasSecondChance = false;
 let isSpeedBoosted = false;
 let speedBoostTimer = null;
 let isBlurred = false;
@@ -30,8 +30,11 @@ let blurOpacity = 0;
 // Starberry визуальные эффекты
 let starberryActive = false;
 let starberryTimer = null;
-let starberryProgress = 1; // 1 = полный эффект, 0 = нет эффекта
+let starberryProgress = 1;
 let stars = [];
+let starberryOverlay = null;
+let starberryHue = 0; // Для радужного эффекта
+let particles = []; // Магические частицы
 
 // Pepper эффекты
 let pepperActive = false;
@@ -94,7 +97,7 @@ const FRUIT_TYPES = {
     blurDuration: 8000
   },
   starberry: {
-    probability: 1.0,
+    probability: 0.02,
     score: 3,
     color: "#87CEEB",
     duration: 15000
@@ -158,6 +161,32 @@ function lerp(start, end, t) {
   return start + (end - start) * t;
 }
 
+// HSL в RGB для радужного эффекта
+function hslToRgb(h, s, l) {
+  let r, g, b;
+  
+  if (s === 0) {
+    r = g = b = l;
+  } else {
+    const hue2rgb = (p, q, t) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+  
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
 // Размер канваса
 function resizeCanvas() {
   const mode = window.gameMode || "default";
@@ -186,6 +215,198 @@ function resizeCanvas() {
 
   tileCountX = cols;
   tileCountY = rows;
+}
+
+// Создание Starberry оверлея на весь экран с анимацией
+function createStarberryOverlay() {
+  if (starberryOverlay) {
+    starberryOverlay.remove();
+  }
+  
+  starberryOverlay = document.createElement("div");
+  starberryOverlay.id = "starberry-overlay";
+  starberryOverlay.style.position = "fixed";
+  starberryOverlay.style.inset = "0";
+  starberryOverlay.style.pointerEvents = "none";
+  starberryOverlay.style.zIndex = "5";
+  starberryOverlay.style.transition = "opacity 2s ease-out";
+  
+  // CSS анимация для переливов
+  const style = document.createElement("style");
+  style.textContent = `
+    @keyframes starberryGlow {
+      0% {
+        background: radial-gradient(
+          ellipse at center,
+          transparent 0%,
+          transparent 30%,
+          rgba(0, 191, 255, 0.1) 60%,
+          rgba(135, 206, 235, 0.25) 100%
+        );
+        box-shadow: 
+          inset 0 0 80px rgba(0, 191, 255, 0.3),
+          inset 0 0 150px rgba(135, 206, 235, 0.2);
+      }
+      25% {
+        background: radial-gradient(
+          ellipse at center,
+          transparent 0%,
+          transparent 30%,
+          rgba(138, 43, 226, 0.1) 60%,
+          rgba(147, 112, 219, 0.25) 100%
+        );
+        box-shadow: 
+          inset 0 0 80px rgba(138, 43, 226, 0.3),
+          inset 0 0 150px rgba(147, 112, 219, 0.2);
+      }
+      50% {
+        background: radial-gradient(
+          ellipse at center,
+          transparent 0%,
+          transparent 30%,
+          rgba(255, 20, 147, 0.1) 60%,
+          rgba(255, 105, 180, 0.25) 100%
+        );
+        box-shadow: 
+          inset 0 0 80px rgba(255, 20, 147, 0.3),
+          inset 0 0 150px rgba(255, 105, 180, 0.2);
+      }
+      75% {
+        background: radial-gradient(
+          ellipse at center,
+          transparent 0%,
+          transparent 30%,
+          rgba(0, 255, 255, 0.1) 60%,
+          rgba(64, 224, 208, 0.25) 100%
+        );
+        box-shadow: 
+          inset 0 0 80px rgba(0, 255, 255, 0.3),
+          inset 0 0 150px rgba(64, 224, 208, 0.2);
+      }
+      100% {
+        background: radial-gradient(
+          ellipse at center,
+          transparent 0%,
+          transparent 30%,
+          rgba(0, 191, 255, 0.1) 60%,
+          rgba(135, 206, 235, 0.25) 100%
+        );
+        box-shadow: 
+          inset 0 0 80px rgba(0, 191, 255, 0.3),
+          inset 0 0 150px rgba(135, 206, 235, 0.2);
+      }
+    }
+    
+    #starberry-overlay {
+      animation: starberryGlow 4s ease-in-out infinite;
+    }
+  `;
+  
+  if (!document.getElementById("starberry-style")) {
+    style.id = "starberry-style";
+    document.head.appendChild(style);
+  }
+  
+  document.body.appendChild(starberryOverlay);
+}
+
+// Обновление прозрачности оверлея
+function updateStarberryOverlay() {
+  if (starberryOverlay) {
+    starberryOverlay.style.opacity = starberryProgress.toString();
+  }
+}
+
+// Создание магических частиц
+function createMagicParticles() {
+  // Создаём частицы вокруг всего экрана
+  for (let i = 0; i < 3; i++) {
+    const side = Math.floor(Math.random() * 4);
+    let x, y, vx, vy;
+    
+    switch (side) {
+      case 0: // top
+        x = Math.random() * window.innerWidth;
+        y = 0;
+        vx = (Math.random() - 0.5) * 2;
+        vy = Math.random() * 2 + 1;
+        break;
+      case 1: // right
+        x = window.innerWidth;
+        y = Math.random() * window.innerHeight;
+        vx = -(Math.random() * 2 + 1);
+        vy = (Math.random() - 0.5) * 2;
+        break;
+      case 2: // bottom
+        x = Math.random() * window.innerWidth;
+        y = window.innerHeight;
+        vx = (Math.random() - 0.5) * 2;
+        vy = -(Math.random() * 2 + 1);
+        break;
+      case 3: // left
+        x = 0;
+        y = Math.random() * window.innerHeight;
+        vx = Math.random() * 2 + 1;
+        vy = (Math.random() - 0.5) * 2;
+        break;
+    }
+    
+    particles.push({
+      x: x,
+      y: y,
+      vx: vx,
+      vy: vy,
+      size: 2 + Math.random() * 4,
+      life: 1,
+      hue: Math.random()
+    });
+  }
+}
+
+// Обновление магических частиц
+function updateMagicParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= 0.005;
+    p.hue += 0.01;
+    if (p.hue > 1) p.hue = 0;
+    
+    if (p.life <= 0 || p.x < -50 || p.x > window.innerWidth + 50 || 
+        p.y < -50 || p.y > window.innerHeight + 50) {
+      particles.splice(i, 1);
+    }
+  }
+}
+
+// Рисование магических частиц на canvas
+function drawMagicParticles() {
+  const canvasRect = canvas.getBoundingClientRect();
+  
+  for (const p of particles) {
+    // Конвертируем screen координаты в canvas координаты
+    const canvasX = p.x - canvasRect.left;
+    const canvasY = p.y - canvasRect.top;
+    
+    if (canvasX >= 0 && canvasX <= canvas.width && canvasY >= 0 && canvasY <= canvas.height) {
+      ctx.save();
+      ctx.globalAlpha = p.life * starberryProgress;
+      
+      const rgb = hslToRgb(p.hue, 1, 0.6);
+      const gradient = ctx.createRadialGradient(canvasX, canvasY, 0, canvasX, canvasY, p.size);
+      gradient.addColorStop(0, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 1)`);
+      gradient.addColorStop(0.5, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.5)`);
+      gradient.addColorStop(1, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0)`);
+      
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(canvasX, canvasY, p.size * 2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.restore();
+    }
+  }
 }
 
 // Инициализация игры
@@ -223,9 +444,17 @@ window.initSnakeGame = function () {
   starberryActive = false;
   pepperActive = false;
   stars = [];
+  particles = [];
   steamParticles = [];
   blurOpacity = 0;
   starberryProgress = 1;
+  starberryHue = 0;
+  
+  // Удаляем оверлей если есть
+  if (starberryOverlay) {
+    starberryOverlay.remove();
+    starberryOverlay = null;
+  }
   
   // Очистка таймеров
   if (poisonTimer) {
@@ -269,6 +498,12 @@ window.stopSnakeGame = function () {
   isGameRunning = false;
   document.removeEventListener("keydown", keyDownEvent);
   
+  // Удаляем оверлей
+  if (starberryOverlay) {
+    starberryOverlay.remove();
+    starberryOverlay = null;
+  }
+  
   // Очистка всех таймеров
   if (poisonTimer) clearTimeout(poisonTimer);
   if (tongueTimer) clearTimeout(tongueTimer);
@@ -299,6 +534,18 @@ function gameLoop(currentTime) {
     updateSteamParticles();
   }
   
+  // Обновление Starberry эффектов
+  if (starberryActive) {
+    starberryHue += 0.005;
+    if (starberryHue > 1) starberryHue = 0;
+    
+    if (animationFrame % 2 === 0) {
+      createMagicParticles();
+    }
+    updateMagicParticles();
+    updateStarberryOverlay();
+  }
+  
   draw();
   requestAnimationFrame(gameLoop);
 }
@@ -312,23 +559,32 @@ function updateGame() {
   const head = { x: snake[0].x + velocityX, y: snake[0].y + velocityY };
   const headKey = posKey(head.x, head.y);
 
-  // Столкновение со стеной
+  // Столкновение со стеной - используем второй шанс
   if (head.x < 0 || head.x >= tileCountX || head.y < 0 || head.y >= tileCountY) {
     if (hasSecondChance) {
-      // Используем второй шанс!
       hasSecondChance = false;
       showSecondChanceEffect();
+      // Телепортируем змею в безопасное место
+      snake[0].x = Math.floor(tileCountX / 2);
+      snake[0].y = Math.floor(tileCountY / 2);
+      velocityX = 0;
+      velocityY = 0;
       return;
     }
     startDeathAnimation(false);
     return;
   }
 
-  // Столкновение с собой
+  // Столкновение с собой - используем второй шанс
   if (snakeSet.has(headKey)) {
     if (hasSecondChance) {
       hasSecondChance = false;
       showSecondChanceEffect();
+      // Телепортируем змею в безопасное место
+      snake[0].x = Math.floor(tileCountX / 2);
+      snake[0].y = Math.floor(tileCountY / 2);
+      velocityX = 0;
+      velocityY = 0;
       return;
     }
     startDeathAnimation(false);
@@ -393,7 +649,7 @@ function activatePepperEffect() {
   pepperActive = true;
   isSpeedBoosted = true;
   
-  moveDelay = baseSpeed / 5; // В 5 раз быстрее
+  moveDelay = baseSpeed / 5;
   steamParticles = [];
   
   if (pepperTimer) clearTimeout(pepperTimer);
@@ -408,13 +664,11 @@ function activatePepperEffect() {
 
 // Обновление частиц пара
 function updateSteamParticles() {
-  // Добавляем новые частицы
   if (animationFrame % 3 === 0) {
     const head = snake[0];
     const headX = head.x * GRID_SIZE + GRID_SIZE / 2;
     const headY = head.y * GRID_SIZE + GRID_SIZE / 2;
     
-    // Левая сторона
     steamParticles.push({
       x: headX - GRID_SIZE / 2,
       y: headY,
@@ -424,7 +678,6 @@ function updateSteamParticles() {
       size: 3 + Math.random() * 4
     });
     
-    // Правая сторона
     steamParticles.push({
       x: headX + GRID_SIZE / 2,
       y: headY,
@@ -435,7 +688,6 @@ function updateSteamParticles() {
     });
   }
   
-  // Обновляем существующие частицы
   for (let i = steamParticles.length - 1; i >= 0; i--) {
     const p = steamParticles[i];
     p.x += p.vx;
@@ -467,10 +719,14 @@ function activateStarberryEffect() {
   hasSecondChance = true;
   starberryActive = true;
   starberryProgress = 1;
+  particles = [];
+  
+  // Создаём оверлей на весь экран
+  createStarberryOverlay();
   
   // Создаём звёздочки по краям
   stars = [];
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 40; i++) {
     const side = Math.floor(Math.random() * 4);
     let x, y;
     
@@ -496,23 +752,29 @@ function activateStarberryEffect() {
     stars.push({
       x: x,
       y: y,
-      size: 3 + Math.random() * 5,
-      speed: 1 + Math.random() * 2,
+      size: 3 + Math.random() * 6,
+      speed: 1 + Math.random() * 3,
       angle: Math.random() * Math.PI * 2,
       rotation: Math.random() * Math.PI * 2,
-      rotationSpeed: (Math.random() - 0.5) * 0.1
+      rotationSpeed: (Math.random() - 0.5) * 0.15,
+      hue: Math.random()
     });
   }
   
   if (starberryTimer) clearTimeout(starberryTimer);
   
+  // Через 15 секунд начинаем плавное угасание
   starberryTimer = setTimeout(() => {
-    // Начинаем плавное угасание
     const fadeInterval = setInterval(() => {
-      starberryProgress -= 0.02;
+      starberryProgress -= 0.015;
       if (starberryProgress <= 0) {
         starberryActive = false;
         stars = [];
+        particles = [];
+        if (starberryOverlay) {
+          starberryOverlay.remove();
+          starberryOverlay = null;
+        }
         clearInterval(fadeInterval);
       }
     }, 50);
@@ -521,20 +783,19 @@ function activateStarberryEffect() {
 
 // Эффект второго шанса
 function showSecondChanceEffect() {
-  // Вспышка экрана
   const flash = document.createElement("div");
   flash.style.position = "fixed";
   flash.style.inset = "0";
-  flash.style.background = "rgba(135, 206, 235, 0.5)";
+  flash.style.background = "radial-gradient(circle, rgba(0, 255, 255, 0.8), rgba(138, 43, 226, 0.5))";
   flash.style.zIndex = "999";
   flash.style.pointerEvents = "none";
   document.body.appendChild(flash);
   
   setTimeout(() => {
-    flash.style.transition = "opacity 0.5s";
+    flash.style.transition = "opacity 0.6s";
     flash.style.opacity = "0";
-    setTimeout(() => flash.remove(), 500);
-  }, 100);
+    setTimeout(() => flash.remove(), 600);
+  }, 150);
 }
 
 // Показать язык
@@ -571,6 +832,10 @@ function drawSnakePart(x, y, isHead) {
     color = "#ff3333";
   } else if (pepperActive) {
     color = "#FF4500";
+  } else if (starberryActive && hasSecondChance) {
+    // Радужный эффект для змеи при Starberry
+    const rgb = hslToRgb(starberryHue, 0.8, 0.6);
+    color = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
   } else {
     color = "#00ff41";
   }
@@ -583,6 +848,12 @@ function drawSnakePart(x, y, isHead) {
   ctx.beginPath();
   ctx.roundRect(-size / 2, -size / 2, size, size, radius);
   ctx.fill();
+  
+  // Свечение при Starberry
+  if (starberryActive && hasSecondChance) {
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = color;
+  }
   
   ctx.strokeStyle = isDead ? "#333333" : "#000000";
   ctx.lineWidth = 1;
@@ -656,13 +927,22 @@ function drawSnakePart(x, y, isHead) {
   ctx.restore();
 }
 
-// Рисование звезды
-function drawStar(x, y, size, rotation) {
+// Рисование звезды с радужным эффектом
+function drawStar(x, y, size, rotation, hue) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(rotation);
   
-  ctx.fillStyle = `rgba(135, 206, 235, ${starberryProgress * 0.9})`;
+  const rgb = hslToRgb(hue, 1, 0.6);
+  const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
+  gradient.addColorStop(0, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${starberryProgress})`);
+  gradient.addColorStop(0.7, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${starberryProgress * 0.6})`);
+  gradient.addColorStop(1, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0)`);
+  
+  ctx.fillStyle = gradient;
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${starberryProgress})`;
+  
   ctx.beginPath();
   
   for (let i = 0; i < 5; i++) {
@@ -680,10 +960,6 @@ function drawStar(x, y, size, rotation) {
   ctx.closePath();
   ctx.fill();
   
-  ctx.strokeStyle = `rgba(255, 255, 255, ${starberryProgress})`;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  
   ctx.restore();
 }
 
@@ -693,37 +969,9 @@ function draw() {
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Starberry голубое свечение по краям
+  // Рисуем магические частицы под всем
   if (starberryActive) {
-    const gradient = ctx.createRadialGradient(
-      canvas.width / 2,
-      canvas.height / 2,
-      Math.min(canvas.width, canvas.height) / 4,
-      canvas.width / 2,
-      canvas.height / 2,
-      Math.max(canvas.width, canvas.height) / 1.5
-    );
-    
-    gradient.addColorStop(0, "transparent");
-    gradient.addColorStop(1, `rgba(135, 206, 235, ${starberryProgress * 0.15})`);
-    
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Рисуем звёздочки
-    for (const star of stars) {
-      star.x += Math.cos(star.angle) * star.speed;
-      star.y += Math.sin(star.angle) * star.speed;
-      star.rotation += star.rotationSpeed;
-      
-      // Wrap around edges
-      if (star.x < -20) star.x = canvas.width + 20;
-      if (star.x > canvas.width + 20) star.x = -20;
-      if (star.y < -20) star.y = canvas.height + 20;
-      if (star.y > canvas.height + 20) star.y = -20;
-      
-      drawStar(star.x, star.y, star.size, star.rotation);
-    }
+    drawMagicParticles();
   }
 
   // Рисуем змею с интерполяцией
@@ -745,10 +993,31 @@ function draw() {
       ctx.save();
       ctx.globalAlpha = particle.life;
       ctx.fillStyle = "#FFFFFF";
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = "#FFFFFF";
       ctx.beginPath();
       ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
+    }
+  }
+  
+  // Рисуем звёздочки (Starberry)
+  if (starberryActive) {
+    for (const star of stars) {
+      star.x += Math.cos(star.angle) * star.speed;
+      star.y += Math.sin(star.angle) * star.speed;
+      star.rotation += star.rotationSpeed;
+      star.hue += 0.01;
+      if (star.hue > 1) star.hue = 0;
+      
+      // Wrap around edges
+      if (star.x < -30) star.x = canvas.width + 30;
+      if (star.x > canvas.width + 30) star.x = -30;
+      if (star.y < -30) star.y = canvas.height + 30;
+      if (star.y > canvas.height + 30) star.y = -30;
+      
+      drawStar(star.x, star.y, star.size, star.rotation, star.hue);
     }
   }
 
@@ -785,7 +1054,6 @@ function draw() {
       break;
   }
   
-  // Применяем затемнение к еде если активен plum
   const foodAlpha = (isBlurred && blurOpacity > 0) ? 1 - blurOpacity : 1;
   ctx.save();
   ctx.globalAlpha = foodAlpha;
@@ -828,7 +1096,6 @@ function spawnFood() {
     const newY = Math.floor(Math.random() * tileCountY);
     
     if (!snakeSet.has(posKey(newX, newY))) {
-      // Определяем тип фрукта по вероятности
       const rand = Math.random();
       let cumulativeProbability = 0;
       let selectedType = "apple";
