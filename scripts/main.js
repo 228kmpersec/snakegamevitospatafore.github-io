@@ -17,10 +17,14 @@ let gameInterval;
 let isGameRunning = false;
 let isPoisoned = false;
 let poisonTimer = null;
-let isDead = false; // флаг смерти
-let deathAnimationProgress = 0; // прогресс анимации смерти
+let isDead = false;
+let deathAnimationProgress = 0;
 
-// Скорость (по умолчанию нормальная, меняется меню)
+// Для плавной анимации
+let snakeTrail = []; // следы для плавности
+let animationFrame = 0;
+
+// Скорость
 window.gameSpeed = 40;
 window.gameMode = "default";
 
@@ -63,13 +67,8 @@ function loadImages() {
     if (loadedCount === 2) imagesLoaded = true;
   };
   
-  appleImg.onerror = () => {
-    console.warn("Не удалось загрузить images/apple.png");
-  };
-  
-  poisonAppleImg.onerror = () => {
-    console.warn("Не удалось загрузить images/poisoned_apple.png");
-  };
+  appleImg.onerror = () => console.warn("Не удалось загрузить images/apple.png");
+  poisonAppleImg.onerror = () => console.warn("Не удалось загрузить images/poisoned_apple.png");
 }
 
 // ================== РАЗМЕР КАНВАСА ==================
@@ -113,6 +112,7 @@ window.initSnakeGame = function () {
   document.addEventListener("keydown", keyDownEvent);
 
   snake = [{ x: 10, y: 10 }];
+  snakeTrail = [];
   score = 0;
   scoreEl.innerText = score;
   velocityX = 0;
@@ -120,6 +120,7 @@ window.initSnakeGame = function () {
   isPoisoned = false;
   isDead = false;
   deathAnimationProgress = 0;
+  animationFrame = 0;
   
   if (poisonTimer) {
     clearTimeout(poisonTimer);
@@ -147,9 +148,11 @@ window.stopSnakeGame = function () {
 function update() {
   if (!isGameRunning) return;
 
+  animationFrame++;
+
   // Если мёртвы - только анимация
   if (isDead) {
-    deathAnimationProgress += 0.05;
+    deathAnimationProgress += 0.03;
     draw();
     return;
   }
@@ -187,7 +190,6 @@ function update() {
     scoreEl.innerText = score;
     
     if (food.isPoisoned) {
-      // Отравленное яблоко
       if (foodSound) foodSound.play();
       isPoisoned = true;
       
@@ -198,7 +200,6 @@ function update() {
       canvas.style.animation = "poisonShake 0.2s infinite";
       
     } else {
-      // Обычное яблоко
       if (foodSound) foodSound.play();
     }
     
@@ -215,10 +216,106 @@ function startDeathAnimation(fromPoison) {
   isDead = true;
   deathAnimationProgress = 0;
   
-  // Через 1.5 секунды показываем Game Over
   setTimeout(() => {
     gameOver(fromPoison);
   }, 1500);
+}
+
+// ================== ОТРИСОВКА ЗМЕИ ==================
+function drawSnakePart(x, y, index, isHead) {
+  const centerX = x * GRID_SIZE + GRID_SIZE / 2;
+  const centerY = y * GRID_SIZE + GRID_SIZE / 2;
+  
+  let size = GRID_SIZE - 4;
+  let squashX = 0;
+  let squashY = 0;
+  
+  // Анимация сжатия при смерти (только голова)
+  if (isHead && isDead) {
+    const progress = Math.min(deathAnimationProgress, 1);
+    
+    if (velocityY !== 0) {
+      squashY = progress * (size * 0.4); // сжатие по вертикали
+    } else if (velocityX !== 0) {
+      squashX = progress * (size * 0.4); // сжатие по горизонтали
+    }
+  }
+  
+  const width = size - squashX;
+  const height = size - squashY;
+  
+  // Цвет змеи
+  let baseColor, lightColor, darkColor;
+  
+  if (isDead) {
+    baseColor = "#555555";
+    lightColor = "#777777";
+    darkColor = "#333333";
+  } else if (isPoisoned) {
+    baseColor = "#ff3333";
+    lightColor = "#ff6666";
+    darkColor = "#cc0000";
+  } else {
+    baseColor = "#00ff41";
+    lightColor = "#66ff88";
+    darkColor = "#00cc33";
+  }
+  
+  // Рисуем сегмент с градиентом и закруглением
+  ctx.save();
+  ctx.translate(centerX, centerY);
+  
+  // Лёгкая волнистая анимация
+  if (!isDead && !isHead) {
+    const wave = Math.sin((animationFrame + index) * 0.1) * 0.5;
+    ctx.rotate(wave * 0.05);
+  }
+  
+  // Градиент для объёма
+  const gradient = ctx.createRadialGradient(
+    -width * 0.2, -height * 0.2, 0,
+    0, 0, Math.max(width, height) * 0.7
+  );
+  gradient.addColorStop(0, lightColor);
+  gradient.addColorStop(0.7, baseColor);
+  gradient.addColorStop(1, darkColor);
+  
+  ctx.fillStyle = gradient;
+  
+  // Закруглённый прямоугольник
+  const radius = Math.min(width, height) * 0.3;
+  ctx.beginPath();
+  ctx.roundRect(-width / 2, -height / 2, width, height, radius);
+  ctx.fill();
+  
+  // Обводка
+  ctx.strokeStyle = darkColor;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  
+  // Глаза на голове
+  if (isHead && !isDead) {
+    ctx.fillStyle = "#000000";
+    const eyeSize = 3;
+    const eyeOffset = width * 0.25;
+    
+    // Позиция глаз зависит от направления
+    if (velocityX > 0) { // вправо
+      ctx.fillRect(width / 2 - 5, -eyeOffset, eyeSize, eyeSize);
+      ctx.fillRect(width / 2 - 5, eyeOffset - eyeSize, eyeSize, eyeSize);
+    } else if (velocityX < 0) { // влево
+      ctx.fillRect(-width / 2 + 2, -eyeOffset, eyeSize, eyeSize);
+      ctx.fillRect(-width / 2 + 2, eyeOffset - eyeSize, eyeSize, eyeSize);
+    } else if (velocityY > 0) { // вниз
+      ctx.fillRect(-eyeOffset, height / 2 - 5, eyeSize, eyeSize);
+      ctx.fillRect(eyeOffset - eyeSize, height / 2 - 5, eyeSize, eyeSize);
+    } else if (velocityY < 0) { // вверх
+      ctx.fillRect(-eyeOffset, -height / 2 + 2, eyeSize, eyeSize);
+      ctx.fillRect(eyeOffset - eyeSize, -height / 2 + 2, eyeSize, eyeSize);
+    }
+  }
+  
+  ctx.restore();
 }
 
 // ================== ОТРИСОВКА ==================
@@ -227,52 +324,15 @@ function draw() {
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Змейка
-  for (let i = 0; i < snake.length; i++) {
-    const isHead = i === 0;
-    
-    // Цвет
-    if (isDead) {
-      ctx.fillStyle = "#666666"; // серая когда мёртвая
-    } else if (isPoisoned) {
-      ctx.fillStyle = "#ff0000"; // красная когда отравлена
-    } else {
-      ctx.fillStyle = "#00ff41"; // зелёная обычная
-    }
-    
-    let width = GRID_SIZE - 2;
-    let height = GRID_SIZE - 2;
-    let offsetX = 0;
-    let offsetY = 0;
-    
-    // Анимация сжатия головы при смерти (сплющивается)
-    if (isHead && isDead) {
-      const squashAmount = Math.min(deathAnimationProgress, 1);
-      
-      // Определяем направление удара
-      if (velocityY !== 0) {
-        // Удар сверху/снизу - сжимается по вертикали
-        height = (GRID_SIZE - 2) * (1 - squashAmount * 0.6); // сжимается до 40% высоты
-        offsetY = ((GRID_SIZE - 2) - height) / 2;
-      } else if (velocityX !== 0) {
-        // Удар слева/справа - сжимается по горизонтали
-        width = (GRID_SIZE - 2) * (1 - squashAmount * 0.6); // сжимается до 40% ширины
-        offsetX = ((GRID_SIZE - 2) - width) / 2;
-      }
-    }
-    
-    ctx.fillRect(
-      snake[i].x * GRID_SIZE + 1 + offsetX,
-      snake[i].y * GRID_SIZE + 1 + offsetY,
-      width,
-      height
-    );
+  // Рисуем змею от хвоста к голове
+  for (let i = snake.length - 1; i >= 0; i--) {
+    drawSnakePart(snake[i].x, snake[i].y, i, i === 0);
   }
 
-  // Еда (картинка яблока БОЛЬШЕ - выходит за клетку)
+  // Еда (картинка яблока)
   if (imagesLoaded) {
     const img = food.isPoisoned ? poisonAppleImg : appleImg;
-    const appleSize = GRID_SIZE * 1.3; // на 30% больше клетки
+    const appleSize = GRID_SIZE * 1.3;
     const offset = (GRID_SIZE - appleSize) / 2;
     
     ctx.drawImage(
@@ -286,12 +346,7 @@ function draw() {
     // Запасной вариант
     if (food.isPoisoned) {
       ctx.fillStyle = "#ff0000";
-      ctx.fillRect(
-        food.x * GRID_SIZE,
-        food.y * GRID_SIZE,
-        GRID_SIZE,
-        GRID_SIZE
-      );
+      ctx.fillRect(food.x * GRID_SIZE, food.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
       
       ctx.strokeStyle = "#000000";
       ctx.lineWidth = 2;
@@ -303,12 +358,7 @@ function draw() {
       ctx.stroke();
     } else {
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(
-        food.x * GRID_SIZE,
-        food.y * GRID_SIZE,
-        GRID_SIZE,
-        GRID_SIZE
-      );
+      ctx.fillRect(food.x * GRID_SIZE, food.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
     }
   }
 }
@@ -327,14 +377,8 @@ function spawnFood() {
       }
     }
     if (!overlap) {
-      // Шанс 1% на отравленное яблоко
       const isPoisonedApple = Math.random() < 0.01;
-      
-      food = { 
-        x: newX, 
-        y: newY, 
-        isPoisoned: isPoisonedApple 
-      };
+      food = { x: newX, y: newY, isPoisoned: isPoisonedApple };
       valid = true;
     }
   }
@@ -342,7 +386,6 @@ function spawnFood() {
 
 // ================== УПРАВЛЕНИЕ ==================
 function keyDownEvent(e) {
-  // Блокируем управление если мёртвы
   if (isDead) return;
   
   const key = e.key.toLowerCase();
