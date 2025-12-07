@@ -94,7 +94,7 @@ const FRUIT_TYPES = {
     blurDuration: 8000
   },
   starberry: {
-    probability: 0.02,
+    probability: 1.0,
     score: 3,
     color: "#87CEEB",
     duration: 15000
