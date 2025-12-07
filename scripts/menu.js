@@ -145,7 +145,7 @@ function createMenuStarryBackground() {
     bgCanvas.id = "menu-stars-bg";
     bgCanvas.style.position = "fixed";
     bgCanvas.style.inset = "0";
-    bgCanvas.style.zIndex = "1";
+    bgCanvas.style.zIndex = "-1";
     bgCanvas.style.pointerEvents = "none";
     document.body.appendChild(bgCanvas);
   }
