@@ -1,244 +1,430 @@
-// SNAKE GAME LOGIC + MATRIX BACKGROUND
+/* CYBERPUNK NOIR – BLACK & WHITE */
 
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
-const scoreEl = document.getElementById("score-val");
-
-const GRID_SIZE = 20;
-let tileCountX = 20;
-let tileCountY = 20;
-
-let velocityX = 0;
-let velocityY = 0;
-let snake = [];
-let food = { x: 5, y: 5 };
-let score = 0;
-let gameInterval;
-let isGameRunning = false;
-
-// Скорость (по умолчанию нормальная, меняется меню)
-window.gameSpeed = 40;
-window.gameMode = "default"; // режим по умолчанию
-
-// ================== РАЗМЕР КАНВАСА ==================
-function resizeCanvas() {
-  const mode = window.gameMode || "default";
-  
-  let widthPercent, heightPercent;
-  
-  // Устанавливаем размеры в зависимости от режима
-  if (mode === "easy") {
-    // Easy - самое маленькое поле (желтая рамка)
-    widthPercent = 0.5;  // 50% ширины экрана
-    heightPercent = 0.5; // 50% высоты экрана
-  } else if (mode === "default") {
-    // Default - среднее поле (красная рамка)
-    widthPercent = 0.7;  // 70% ширины экрана
-    heightPercent = 0.7; // 70% высоты экрана
-  } else if (mode === "hard") {
-    // Hard - самое большое поле (зеленая рамка)
-    widthPercent = 0.9;  // 90% ширины экрана
-    heightPercent = 0.8; // 80% высоты экрана
-  }
-
-  const maxWidth = window.innerWidth * widthPercent;
-  const maxHeight = window.innerHeight * heightPercent;
-
-  const cols = Math.floor(maxWidth / GRID_SIZE);
-  const rows = Math.floor(maxHeight / GRID_SIZE);
-
-  canvas.width = cols * GRID_SIZE;
-  canvas.height = rows * GRID_SIZE;
-
-  tileCountX = cols;
-  tileCountY = rows;
+:root {
+  --bg-color: #000000;
+  --primary: #ffffff;
+  --secondary: #b0b0b0;
 }
 
-// ================== ИНИЦИАЛИЗАЦИЯ ИГРЫ ==================
-window.initSnakeGame = function () {
-  if (isGameRunning) return;
-
-  resizeCanvas();
-  window.addEventListener("resize", resizeCanvas);
-  document.addEventListener("keydown", keyDownEvent);
-
-  snake = [{ x: 10, y: 10 }];
-  score = 0;
-  scoreEl.innerText = score;
-  velocityX = 0;
-  velocityY = 0;
-
-  spawnFood();
-  isGameRunning = true;
-  gameInterval = setInterval(update, window.gameSpeed);
-  createMatrixRain();
-};
-
-window.stopSnakeGame = function () {
-  isGameRunning = false;
-  clearInterval(gameInterval);
-  document.removeEventListener("keydown", keyDownEvent);
-};
-
-// ================== ОБНОВЛЕНИЕ ИГРЫ ==================
-function update() {
-  if (!isGameRunning) return;
-
-  const head = { x: snake[0].x + velocityX, y: snake[0].y + velocityY };
-
-  // Столкновение со стеной
-  if (
-    head.x < 0 ||
-    head.x >= tileCountX ||
-    head.y < 0 ||
-    head.y >= tileCountY
-  ) {
-    gameOver();
-    return;
-  }
-
-  // Столкновение с собой
-  for (let i = 0; i < snake.length; i++) {
-    if (head.x === snake[i].x && head.y === snake[i].y) {
-      if (velocityX !== 0 || velocityY !== 0) {
-        gameOver();
-        return;
-      }
-    }
-  }
-
-  snake.unshift(head);
-
-  // Еда
-  if (head.x === food.x && head.y === food.y) {
-    score++;
-    scoreEl.innerText = score;
-    spawnFood();
-  } else {
-    snake.pop();
-  }
-
-  draw();
+* {
+  box-sizing: border-box;
 }
 
-// ================== ОТРИСОВКА ==================
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#000000"; // ЧЁРНЫЙ
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+body {
+  margin: 0;
+  height: 100vh;
+  background-color: #000000; /* обязательно чёрный */
+  color: var(--primary);
+  font-family: "Courier New", monospace;
+  overflow: hidden;
+}
 
-  // змейка
-  ctx.fillStyle = "#00ff41";
-  for (let i = 0; i < snake.length; i++) {
-    ctx.fillRect(
-      snake[i].x * GRID_SIZE + 1,
-      snake[i].y * GRID_SIZE + 1,
-      GRID_SIZE - 2,
-      GRID_SIZE - 2
-    );
-  }
-
-  // еда
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(
-    food.x * GRID_SIZE + 1,
-    food.y * GRID_SIZE + 1,
-    GRID_SIZE - 2,
-    GRID_SIZE - 2
+/* Лёгкие сканлайны */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.02),
+    rgba(255, 255, 255, 0.02) 1px,
+    transparent 1px,
+    transparent 3px
   );
+  pointer-events: none;
+  z-index: 9999;
 }
 
-// ================== СПАВН ЕДЫ ==================
-function spawnFood() {
-  let valid = false;
-  while (!valid) {
-    const newX = Math.floor(Math.random() * tileCountX);
-    const newY = Math.floor(Math.random() * tileCountY);
-    let overlap = false;
-    for (let part of snake) {
-      if (part.x === newX && part.y === newY) {
-        overlap = true;
-        break;
-      }
-    }
-    if (!overlap) {
-      food = { x: newX, y: newY };
-      valid = true;
-    }
+/* МЕНЮ */
+.menu {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 10;
+  backdrop-filter: blur(4px);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.menu-container {
+  text-align: center;
+  position: relative;
+  z-index: 20;
+  padding: 2.5rem 3.5rem;
+  box-shadow: 0 0 40px rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.menu-title {
+  font-size: clamp(3rem, 10vw, 6rem);
+  font-weight: 900;
+  margin-bottom: 4rem;
+  color: var(--primary);
+  letter-spacing: 10px;
+  position: relative;
+  transform: translateY(-30px);
+  text-shadow:
+    0 0 12px rgba(255, 255, 255, 0.6),
+    0 0 24px rgba(255, 255, 255, 0.3);
+  animation: titleFlicker 4s infinite;
+}
+
+@keyframes titleFlicker {
+  0%,
+  90%,
+  100% {
+    opacity: 1;
+    text-shadow:
+      0 0 12px rgba(255, 255, 255, 0.6),
+      0 0 24px rgba(255, 255, 255, 0.3);
+  }
+  92% {
+    opacity: 0.7;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+  }
+  95% {
+    opacity: 0.4;
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.2);
+  }
+  97% {
+    opacity: 1;
+    text-shadow:
+      0 0 16px rgba(255, 255, 255, 0.8),
+      0 0 32px rgba(255, 255, 255, 0.4);
   }
 }
 
-// ================== УПРАВЛЕНИЕ ==================
-function keyDownEvent(e) {
-  const key = e.key.toLowerCase();
+/* ВРЭППЕР КНОПОК + ВИТО */
+.play-button-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+}
 
-  switch (key) {
-    case "a":
-    case "arrowleft":
-      if (velocityX === 1) break;
-      velocityX = -1;
-      velocityY = 0;
-      break;
-    case "d":
-    case "arrowright":
-      if (velocityX === -1) break;
-      velocityX = 1;
-      velocityY = 0;
-      break;
-    case "w":
-    case "arrowup":
-      if (velocityY === 1) break;
-      velocityX = 0;
-      velocityY = -1;
-      break;
-    case "s":
-    case "arrowdown":
-      if (velocityY === -1) break;
-      velocityX = 0;
-      velocityY = 1;
-      break;
+/* Вито за кнопкой */
+.play-button-wrapper::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.1);
+  width: 400px;
+  height: 400px;
+  background-image: url("../images/vito.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0;
+  z-index: -1;
+  filter: grayscale(100%) contrast(1.2);
+  transition: all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* При наведении – Вито вылезает */
+.play-button-wrapper:hover::before {
+  transform: translate(-50%, -85%) scale(1.4);
+  opacity: 0.8;
+  filter: grayscale(100%) contrast(1.3);
+}
+
+/* КНОПКИ МОДОВ */
+.play-button,
+.mode-button {
+  background: transparent;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  position: relative;
+  transition: all 0.3s ease;
+  box-shadow:
+    0 0 20px rgba(255, 255, 255, 0.15),
+    inset 0 0 12px rgba(255, 255, 255, 0.05);
+}
+
+/* Центральная */
+.play-button {
+  padding: 1.2rem 3.5rem;
+}
+
+/* Боковые кнопки по умолчанию скрыты */
+.mode-button {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(0);
+}
+
+/* Когда режимы открыты */
+.modes-visible .mode-button-left {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-10px);
+}
+
+.modes-visible .mode-button-right {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(10px);
+}
+
+/* Лёгкая анимация появления */
+.mode-button-left,
+.mode-button-right {
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    background 0.3s ease,
+    color 0.3s ease;
+}
+
+.play-button:hover,
+.mode-button:hover {
+  background: var(--primary);
+  color: #000;
+  box-shadow:
+    0 0 30px rgba(255, 255, 255, 0.5),
+    0 0 60px rgba(255, 255, 255, 0.3);
+}
+
+/* MENU NAV */
+.menu-nav {
+  margin-top: 2.5rem;
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+}
+
+.menu-link {
+  color: var(--secondary);
+  text-decoration: none;
+  font-size: 0.95rem;
+  letter-spacing: 2px;
+  border-bottom: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.menu-link:hover {
+  color: var(--primary);
+  border-bottom: 1px solid var(--primary);
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+/* ИГРОВОЕ ПОЛЕ */
+.game-root {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+}
+
+canvas {
+  border: 2px solid var(--primary);
+  box-shadow:
+    0 0 30px rgba(255, 255, 255, 0.3),
+    0 0 60px rgba(255, 255, 255, 0.1);
+  background: transparent; /* никакого белого */
+}
+
+/* UI поверх игры */
+.ui-overlay {
+  position: absolute;
+  top: 20px;
+  width: 90%;
+  max-width: 900px;
+  display: flex;
+  justify-content: space-between;
+  color: var(--primary);
+  font-size: 1rem;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.back-btn {
+  background: transparent;
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  padding: 4px 16px;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: 2px;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background: var(--primary);
+  color: #000;
+}
+
+/* ====== GAME OVER МЕНЮ ====== */
+.game-over-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
-// ================== КОНЕЦ ИГРЫ ==================
-function gameOver() {
-  alert(`GAME OVER\nSCORE: ${score}`);
-  window.stopSnakeGame();
-  if (window.returnToMenu) window.returnToMenu();
+.game-over-content {
+  text-align: center;
+  padding: 3rem 4rem;
+  border: 2px solid var(--primary);
+  background: rgba(0, 0, 0, 0.9);
+  box-shadow:
+    0 0 40px rgba(255, 255, 255, 0.3),
+    0 0 80px rgba(255, 255, 255, 0.1);
+  animation: slideUp 0.4s ease;
 }
 
-// ================== МАТРИЦА НА ЗАДНЕМ ФОНЕ ==================
-function createMatrixRain() {
-  const matrixCanvas = document.createElement("canvas");
-  matrixCanvas.id = "matrix-bg";
-  matrixCanvas.style.position = "fixed";
-  matrixCanvas.style.inset = "0";
-  matrixCanvas.style.zIndex = "-1";
-  document.body.appendChild(matrixCanvas);
-
-  const ctxM = matrixCanvas.getContext("2d");
-  matrixCanvas.width = window.innerWidth;
-  matrixCanvas.height = window.innerHeight;
-
-  const columns = Math.floor(matrixCanvas.width / 20);
-  const drops = Array(columns).fill(1);
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()";
-
-  function drawMatrix() {
-    ctxM.fillStyle = "rgba(0, 0, 0, 0.3)";
-    ctxM.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
-    ctxM.fillStyle = "rgba(255, 255, 255, 0.9)";
-    ctxM.font = "18px monospace";
-
-    for (let i = 0; i < drops.length; i++) {
-      const text = chars[Math.floor(Math.random() * chars.length)];
-      ctxM.fillText(text, i * 20, drops[i] * 20);
-      if (drops[i] * 20 > matrixCanvas.height && Math.random() > 0.975) {
-        drops[i] = 0;
-      }
-      drops[i]++;
-    }
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
   }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
 
-  setInterval(drawMatrix, 50);
+.game-over-title {
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  font-weight: 900;
+  letter-spacing: 8px;
+  margin: 0 0 2rem 0;
+  color: var(--primary);
+  text-shadow:
+    0 0 20px rgba(255, 255, 255, 0.8),
+    0 0 40px rgba(255, 255, 255, 0.4);
+  animation: titlePulse 2s infinite;
+}
+
+@keyframes titlePulse {
+  0%, 100% {
+    text-shadow:
+      0 0 20px rgba(255, 255, 255, 0.8),
+      0 0 40px rgba(255, 255, 255, 0.4);
+  }
+  50% {
+    text-shadow:
+      0 0 30px rgba(255, 255, 255, 1),
+      0 0 60px rgba(255, 255, 255, 0.6);
+  }
+}
+
+.game-over-score {
+  font-size: 1.8rem;
+  letter-spacing: 4px;
+  margin-bottom: 2.5rem;
+  color: var(--secondary);
+}
+
+.game-over-score span {
+  color: var(--primary);
+  font-weight: bold;
+  font-size: 2.2rem;
+}
+
+.game-over-buttons {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.game-over-btn {
+  background: transparent;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  transition: all 0.3s ease;
+  box-shadow:
+    0 0 20px rgba(255, 255, 255, 0.15),
+    inset 0 0 12px rgba(255, 255, 255, 0.05);
+}
+
+.game-over-btn:hover {
+  background: var(--primary);
+  color: #000;
+  box-shadow:
+    0 0 30px rgba(255, 255, 255, 0.5),
+    0 0 60px rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+/* МОДАЛКА */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: #050505;
+  border: 2px solid var(--primary);
+  padding: 2.5rem 3rem;
+  min-width: 280px;
+  text-align: center;
+  box-shadow: 0 0 40px rgba(255, 255, 255, 0.3);
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 1.8rem;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+.highlight {
+  color: var(--primary);
+  font-weight: bold;
 }
