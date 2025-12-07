@@ -17,6 +17,8 @@ let gameInterval;
 let isGameRunning = false;
 let isPoisoned = false;
 let poisonTimer = null;
+let isDead = false; // флаг смерти
+let deathAnimationProgress = 0; // прогресс анимации смерти
 
 // Скорость (по умолчанию нормальная, меняется меню)
 window.gameSpeed = 40;
@@ -49,7 +51,6 @@ function loadImages() {
   poisonAppleImg = new Image();
   poisonAppleImg.src = "images/poisoned_apple.png";
   
-  // Ждём загрузки обеих картинок
   let loadedCount = 0;
   
   appleImg.onload = () => {
@@ -117,6 +118,8 @@ window.initSnakeGame = function () {
   velocityX = 0;
   velocityY = 0;
   isPoisoned = false;
+  isDead = false;
+  deathAnimationProgress = 0;
   
   if (poisonTimer) {
     clearTimeout(poisonTimer);
@@ -144,6 +147,13 @@ window.stopSnakeGame = function () {
 function update() {
   if (!isGameRunning) return;
 
+  // Если мёртвы - только анимация
+  if (isDead) {
+    deathAnimationProgress += 0.05;
+    draw();
+    return;
+  }
+
   if (isPoisoned) return;
 
   const head = { x: snake[0].x + velocityX, y: snake[0].y + velocityY };
@@ -155,7 +165,7 @@ function update() {
     head.y < 0 ||
     head.y >= tileCountY
   ) {
-    gameOver(false);
+    startDeathAnimation(false);
     return;
   }
 
@@ -163,7 +173,7 @@ function update() {
   for (let i = 0; i < snake.length; i++) {
     if (head.x === snake[i].x && head.y === snake[i].y) {
       if (velocityX !== 0 || velocityY !== 0) {
-        gameOver(false);
+        startDeathAnimation(false);
         return;
       }
     }
@@ -177,12 +187,12 @@ function update() {
     scoreEl.innerText = score;
     
     if (food.isPoisoned) {
-      // Отравленное яблоко - играем звук еды (тот же)
+      // Отравленное яблоко
       if (foodSound) foodSound.play();
       isPoisoned = true;
       
       poisonTimer = setTimeout(() => {
-        gameOver(true);
+        startDeathAnimation(true);
       }, 2000);
       
       canvas.style.animation = "poisonShake 0.2s infinite";
@@ -200,24 +210,57 @@ function update() {
   draw();
 }
 
+// ================== ЗАПУСК АНИМАЦИИ СМЕРТИ ==================
+function startDeathAnimation(fromPoison) {
+  isDead = true;
+  deathAnimationProgress = 0;
+  
+  // Через 1.5 секунды показываем Game Over
+  setTimeout(() => {
+    gameOver(fromPoison);
+  }, 1500);
+}
+
 // ================== ОТРИСОВКА ==================
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Змейка (красная если отравлена)
-  ctx.fillStyle = isPoisoned ? "#ff0000" : "#00ff41";
+  // Змейка
   for (let i = 0; i < snake.length; i++) {
+    const isHead = i === 0;
+    
+    // Цвет
+    if (isDead) {
+      ctx.fillStyle = "#666666"; // серая когда мёртвая
+    } else if (isPoisoned) {
+      ctx.fillStyle = "#ff0000"; // красная когда отравлена
+    } else {
+      ctx.fillStyle = "#00ff41"; // зелёная обычная
+    }
+    
+    let size = GRID_SIZE - 2;
+    let offsetX = 0;
+    let offsetY = 0;
+    
+    // Анимация сжатия головы при смерти
+    if (isHead && isDead) {
+      const shrinkAmount = Math.min(deathAnimationProgress, 1) * (GRID_SIZE / 2);
+      size = GRID_SIZE - 2 - shrinkAmount;
+      offsetX = shrinkAmount / 2;
+      offsetY = shrinkAmount / 2;
+    }
+    
     ctx.fillRect(
-      snake[i].x * GRID_SIZE + 1,
-      snake[i].y * GRID_SIZE + 1,
-      GRID_SIZE - 2,
-      GRID_SIZE - 2
+      snake[i].x * GRID_SIZE + 1 + offsetX,
+      snake[i].y * GRID_SIZE + 1 + offsetY,
+      size,
+      size
     );
   }
 
-  // Еда (картинка яблока)
+  // Еда (картинка яблока на всю клетку)
   if (imagesLoaded) {
     const img = food.isPoisoned ? poisonAppleImg : appleImg;
     ctx.drawImage(
@@ -228,14 +271,14 @@ function draw() {
       GRID_SIZE
     );
   } else {
-    // Запасной вариант если картинки не загрузились
+    // Запасной вариант
     if (food.isPoisoned) {
       ctx.fillStyle = "#ff0000";
       ctx.fillRect(
-        food.x * GRID_SIZE + 1,
-        food.y * GRID_SIZE + 1,
-        GRID_SIZE - 2,
-        GRID_SIZE - 2
+        food.x * GRID_SIZE,
+        food.y * GRID_SIZE,
+        GRID_SIZE,
+        GRID_SIZE
       );
       
       ctx.strokeStyle = "#000000";
@@ -249,10 +292,10 @@ function draw() {
     } else {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(
-        food.x * GRID_SIZE + 1,
-        food.y * GRID_SIZE + 1,
-        GRID_SIZE - 2,
-        GRID_SIZE - 2
+        food.x * GRID_SIZE,
+        food.y * GRID_SIZE,
+        GRID_SIZE,
+        GRID_SIZE
       );
     }
   }
@@ -273,7 +316,7 @@ function spawnFood() {
     }
     if (!overlap) {
       // Шанс 1% на отравленное яблоко
-      const isPoisonedApple = Math.random() < 1.0;
+      const isPoisonedApple = Math.random() < 0.01;
       
       food = { 
         x: newX, 
@@ -287,6 +330,9 @@ function spawnFood() {
 
 // ================== УПРАВЛЕНИЕ ==================
 function keyDownEvent(e) {
+  // Блокируем управление если мёртвы
+  if (isDead) return;
+  
   const key = e.key.toLowerCase();
 
   switch (key) {
@@ -323,7 +369,6 @@ function gameOver(fromPoison) {
   
   canvas.style.animation = "";
   
-  // Звук game over
   if (gameoverSound) gameoverSound.play();
   
   const gameOverModal = document.getElementById("game-over-modal");
@@ -335,9 +380,11 @@ function gameOver(fromPoison) {
     
     if (fromPoison && gameOverTitle) {
       gameOverTitle.textContent = "POISONED!";
+      gameOverTitle.classList.add("poisoned");
       gameOverTitle.style.color = "#ff0000";
     } else if (gameOverTitle) {
       gameOverTitle.textContent = "GAME OVER";
+      gameOverTitle.classList.remove("poisoned");
       gameOverTitle.style.color = "#ffffff";
     }
     
