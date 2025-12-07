@@ -18,15 +18,13 @@ let isPoisoned = false;
 let poisonTimer = null;
 let isDead = false;
 
-// Для плавного движения - микрошаги
+// Для плавного движения
 let lastMoveTime = 0;
-let baseMoveDelay = 40;
-let microStepDelay = 5;
-let microStepsPerMove = 8;
-let currentMicroStep = 0;
+let moveDelay = 40;
 
-// Позиции в суб-пикселях для плавности
-let snakeSubPixel = [];
+// Очередь всех позиций для плавного движения тела
+let positionHistory = [];
+let maxHistoryLength = 100;
 
 let animationFrame = 0;
 
@@ -122,7 +120,7 @@ window.initSnakeGame = function () {
   document.addEventListener("keydown", keyDownEvent);
 
   snake = [{ x: 10, y: 10 }];
-  snakeSubPixel = [{ x: 10, y: 10, subX: 0, subY: 0 }];
+  positionHistory = [{ x: 10, y: 10 }];
   
   score = 0;
   scoreEl.innerText = score;
@@ -132,11 +130,9 @@ window.initSnakeGame = function () {
   isDead = false;
   animationFrame = 0;
   lastMoveTime = performance.now();
-  currentMicroStep = 0;
   tongueOut = false;
   
-  baseMoveDelay = window.gameSpeed;
-  microStepDelay = baseMoveDelay / microStepsPerMove;
+  moveDelay = window.gameSpeed;
   
   if (poisonTimer) {
     clearTimeout(poisonTimer);
@@ -178,7 +174,7 @@ function gameLoop(currentTime) {
   
   const deltaTime = currentTime - lastMoveTime;
   
-  if (deltaTime >= microStepDelay) {
+  if (deltaTime >= moveDelay) {
     lastMoveTime = currentTime;
     updateGame();
   }
@@ -191,86 +187,55 @@ function gameLoop(currentTime) {
 function updateGame() {
   if (isDead || isPoisoned || velocityX === 0 && velocityY === 0) return;
 
-  currentMicroStep++;
-  
-  const stepSize = 1.0 / microStepsPerMove;
-  
-  // Каждый микрошаг - проверяем достигли ли новой клетки
-  if (currentMicroStep >= microStepsPerMove) {
-    currentMicroStep = 0;
-    
-    const head = { x: snake[0].x + velocityX, y: snake[0].y + velocityY };
+  const head = { x: snake[0].x + velocityX, y: snake[0].y + velocityY };
 
-    // Столкновение со стеной
-    if (head.x < 0 || head.x >= tileCountX || head.y < 0 || head.y >= tileCountY) {
+  // Столкновение со стеной
+  if (head.x < 0 || head.x >= tileCountX || head.y < 0 || head.y >= tileCountY) {
+    startDeathAnimation(false);
+    return;
+  }
+
+  // Столкновение с собой
+  for (let i = 0; i < snake.length; i++) {
+    if (head.x === snake[i].x && head.y === snake[i].y) {
       startDeathAnimation(false);
       return;
     }
+  }
 
-    // Столкновение с собой
-    for (let i = 0; i < snake.length; i++) {
-      if (head.x === snake[i].x && head.y === snake[i].y) {
-        startDeathAnimation(false);
-        return;
-      }
-    }
+  snake.unshift(head);
+  positionHistory.unshift({ x: head.x, y: head.y });
 
-    snake.unshift(head);
+  // Еда
+  if (head.x === food.x && head.y === food.y) {
+    score++;
+    scoreEl.innerText = score;
     
-    // Новая голова начинается с отрицательным смещением
-    snakeSubPixel.unshift({ 
-      x: head.x, 
-      y: head.y, 
-      subX: -velocityX, 
-      subY: -velocityY 
-    });
-
-    // Еда
-    if (head.x === food.x && head.y === food.y) {
-      score++;
-      scoreEl.innerText = score;
-      
-      if (score % 8 === 0) {
-        showTongue();
-      }
-      
-      if (food.isPoisoned) {
-        if (foodSound) foodSound.play();
-        isPoisoned = true;
-        
-        poisonTimer = setTimeout(() => {
-          startDeathAnimation(true);
-        }, 2000);
-        
-        canvas.style.animation = "poisonShake 0.2s infinite";
-      } else {
-        if (foodSound) foodSound.play();
-      }
-      
-      spawnFood();
-    } else {
-      snake.pop();
-      snakeSubPixel.pop();
+    if (score % 8 === 0) {
+      showTongue();
     }
+    
+    if (food.isPoisoned) {
+      if (foodSound) foodSound.play();
+      isPoisoned = true;
+      
+      poisonTimer = setTimeout(() => {
+        startDeathAnimation(true);
+      }, 2000);
+      
+      canvas.style.animation = "poisonShake 0.2s infinite";
+    } else {
+      if (foodSound) foodSound.play();
+    }
+    
+    spawnFood();
+  } else {
+    snake.pop();
   }
   
-  // ФИКС: Плавное движение всех сегментов каждый микрошаг
-  // Голова движется вперёд
-  snakeSubPixel[0].subX += velocityX * stepSize;
-  snakeSubPixel[0].subY += velocityY * stepSize;
-  
-  // ФИКС: Тело просто копирует координаты предыдущего сегмента из прошлого кадра
-  // Это устраняет дергание
-  for (let i = snakeSubPixel.length - 1; i > 0; i--) {
-    const prev = snakeSubPixel[i - 1];
-    
-    // Копируем целые координаты
-    snakeSubPixel[i].x = prev.x;
-    snakeSubPixel[i].y = prev.y;
-    
-    // Копируем субпиксели, но с небольшим отставанием
-    snakeSubPixel[i].subX = prev.subX - velocityX * stepSize;
-    snakeSubPixel[i].subY = prev.subY - velocityY * stepSize;
+  // Ограничиваем историю позиций
+  if (positionHistory.length > maxHistoryLength) {
+    positionHistory.length = maxHistoryLength;
   }
 }
 
@@ -294,10 +259,7 @@ function startDeathAnimation(fromPoison) {
 }
 
 // ================== ОТРИСОВКА СЕГМЕНТА ЗМЕИ ==================
-function drawSnakePart(pos, index, isHead) {
-  const x = pos.x + (pos.subX || 0);
-  const y = pos.y + (pos.subY || 0);
-  
+function drawSnakePart(x, y, isHead) {
   const centerX = x * GRID_SIZE + GRID_SIZE / 2;
   const centerY = y * GRID_SIZE + GRID_SIZE / 2;
   
@@ -400,9 +362,9 @@ function draw() {
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Рисуем змею
-  for (let i = snakeSubPixel.length - 1; i >= 0; i--) {
-    drawSnakePart(snakeSubPixel[i], i, i === 0);
+  // Рисуем змею используя дискретные позиции
+  for (let i = 0; i < snake.length; i++) {
+    drawSnakePart(snake[i].x, snake[i].y, i === 0);
   }
 
   // Еда
