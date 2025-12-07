@@ -4,7 +4,7 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const scoreEl = document.getElementById("score-val");
 
-const GRID_SIZE = 20;
+const GRID_SIZE = 25; // увеличен размер клетки (было 20)
 let tileCountX = 20;
 let tileCountY = 20;
 
@@ -13,16 +13,20 @@ let velocityY = 0;
 let snake = [];
 let food = { x: 5, y: 5, isPoisoned: false };
 let score = 0;
-let gameInterval;
 let isGameRunning = false;
 let isPoisoned = false;
 let poisonTimer = null;
 let isDead = false;
-let deathAnimationProgress = 0;
 
-// Для плавной анимации
-let snakeTrail = []; // следы для плавности
+// Для высокого FPS
+let lastMoveTime = 0;
+let moveDelay = 40; // задержка между ходами змеи (скорость игры)
 let animationFrame = 0;
+let lastFrameTime = 0;
+
+// Язык
+let tongueOut = false;
+let tongueTimer = null;
 
 // Скорость
 window.gameSpeed = 40;
@@ -112,52 +116,75 @@ window.initSnakeGame = function () {
   document.addEventListener("keydown", keyDownEvent);
 
   snake = [{ x: 10, y: 10 }];
-  snakeTrail = [];
   score = 0;
   scoreEl.innerText = score;
   velocityX = 0;
   velocityY = 0;
   isPoisoned = false;
   isDead = false;
-  deathAnimationProgress = 0;
   animationFrame = 0;
+  lastMoveTime = 0;
+  tongueOut = false;
+  
+  // Устанавливаем задержку в зависимости от режима
+  moveDelay = window.gameSpeed;
   
   if (poisonTimer) {
     clearTimeout(poisonTimer);
     poisonTimer = null;
   }
+  
+  if (tongueTimer) {
+    clearTimeout(tongueTimer);
+    tongueTimer = null;
+  }
 
   spawnFood();
   isGameRunning = true;
-  gameInterval = setInterval(update, window.gameSpeed);
+  
+  // Запускаем игровой цикл с высоким FPS
+  requestAnimationFrame(gameLoop);
+  
   createMatrixRain();
 };
 
 window.stopSnakeGame = function () {
   isGameRunning = false;
-  clearInterval(gameInterval);
   document.removeEventListener("keydown", keyDownEvent);
   
   if (poisonTimer) {
     clearTimeout(poisonTimer);
     poisonTimer = null;
   }
+  
+  if (tongueTimer) {
+    clearTimeout(tongueTimer);
+    tongueTimer = null;
+  }
 };
 
-// ================== ОБНОВЛЕНИЕ ИГРЫ ==================
-function update() {
+// ================== ИГРОВОЙ ЦИКЛ (высокий FPS) ==================
+function gameLoop(currentTime) {
   if (!isGameRunning) return;
-
+  
+  // Плавная анимация независимо от скорости игры
   animationFrame++;
-
-  // Если мёртвы - только анимация
-  if (isDead) {
-    deathAnimationProgress += 0.03;
-    draw();
-    return;
+  
+  // Обновляем логику игры только через определённые интервалы
+  if (currentTime - lastMoveTime >= moveDelay) {
+    lastMoveTime = currentTime;
+    updateGame();
   }
+  
+  // Рисуем каждый кадр для плавности
+  draw();
+  
+  requestAnimationFrame(gameLoop);
+}
 
-  if (isPoisoned) return;
+// ================== ОБНОВЛЕНИЕ ЛОГИКИ ИГРЫ ==================
+function updateGame() {
+  if (isDead || isPoisoned) return;
 
   const head = { x: snake[0].x + velocityX, y: snake[0].y + velocityY };
 
@@ -189,6 +216,11 @@ function update() {
     score++;
     scoreEl.innerText = score;
     
+    // Каждые 8 яблок - высовывается язык
+    if (score % 8 === 0) {
+      showTongue();
+    }
+    
     if (food.isPoisoned) {
       if (foodSound) foodSound.play();
       isPoisoned = true;
@@ -207,42 +239,34 @@ function update() {
   } else {
     snake.pop();
   }
+}
 
-  draw();
+// ================== ПОКАЗАТЬ ЯЗЫК ==================
+function showTongue() {
+  tongueOut = true;
+  
+  // Язык убирается через 1 секунду
+  if (tongueTimer) clearTimeout(tongueTimer);
+  tongueTimer = setTimeout(() => {
+    tongueOut = false;
+  }, 1000);
 }
 
 // ================== ЗАПУСК АНИМАЦИИ СМЕРТИ ==================
 function startDeathAnimation(fromPoison) {
   isDead = true;
-  deathAnimationProgress = 0;
   
   setTimeout(() => {
     gameOver(fromPoison);
   }, 1500);
 }
 
-// ================== ОТРИСОВКА ЗМЕИ ==================
+// ================== ОТРИСОВКА СЕГМЕНТА ЗМЕИ ==================
 function drawSnakePart(x, y, index, isHead) {
   const centerX = x * GRID_SIZE + GRID_SIZE / 2;
   const centerY = y * GRID_SIZE + GRID_SIZE / 2;
   
-  let size = GRID_SIZE - 4;
-  let squashX = 0;
-  let squashY = 0;
-  
-  // Анимация сжатия при смерти (только голова)
-  if (isHead && isDead) {
-    const progress = Math.min(deathAnimationProgress, 1);
-    
-    if (velocityY !== 0) {
-      squashY = progress * (size * 0.4); // сжатие по вертикали
-    } else if (velocityX !== 0) {
-      squashX = progress * (size * 0.4); // сжатие по горизонтали
-    }
-  }
-  
-  const width = size - squashX;
-  const height = size - squashY;
+  const size = GRID_SIZE - 4;
   
   // Цвет змеи
   let baseColor, lightColor, darkColor;
@@ -261,20 +285,19 @@ function drawSnakePart(x, y, index, isHead) {
     darkColor = "#00cc33";
   }
   
-  // Рисуем сегмент с градиентом и закруглением
   ctx.save();
   ctx.translate(centerX, centerY);
   
   // Лёгкая волнистая анимация
   if (!isDead && !isHead) {
-    const wave = Math.sin((animationFrame + index) * 0.1) * 0.5;
-    ctx.rotate(wave * 0.05);
+    const wave = Math.sin((animationFrame * 0.05 + index) * 0.5) * 0.5;
+    ctx.rotate(wave * 0.03);
   }
   
   // Градиент для объёма
   const gradient = ctx.createRadialGradient(
-    -width * 0.2, -height * 0.2, 0,
-    0, 0, Math.max(width, height) * 0.7
+    -size * 0.2, -size * 0.2, 0,
+    0, 0, size * 0.7
   );
   gradient.addColorStop(0, lightColor);
   gradient.addColorStop(0.7, baseColor);
@@ -283,35 +306,80 @@ function drawSnakePart(x, y, index, isHead) {
   ctx.fillStyle = gradient;
   
   // Закруглённый прямоугольник
-  const radius = Math.min(width, height) * 0.3;
+  const radius = size * 0.3;
   ctx.beginPath();
-  ctx.roundRect(-width / 2, -height / 2, width, height, radius);
+  ctx.roundRect(-size / 2, -size / 2, size, size, radius);
   ctx.fill();
   
   // Обводка
   ctx.strokeStyle = darkColor;
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1.5;
   ctx.stroke();
   
-  // Глаза на голове
+  // Глаза и язык на голове
   if (isHead && !isDead) {
     ctx.fillStyle = "#000000";
-    const eyeSize = 3;
-    const eyeOffset = width * 0.25;
+    const eyeSize = 4;
+    const eyeOffset = size * 0.25;
     
-    // Позиция глаз зависит от направления
+    // Глаза
     if (velocityX > 0) { // вправо
-      ctx.fillRect(width / 2 - 5, -eyeOffset, eyeSize, eyeSize);
-      ctx.fillRect(width / 2 - 5, eyeOffset - eyeSize, eyeSize, eyeSize);
+      ctx.fillRect(size / 2 - 6, -eyeOffset, eyeSize, eyeSize);
+      ctx.fillRect(size / 2 - 6, eyeOffset - eyeSize, eyeSize, eyeSize);
+      
+      // Язык
+      if (tongueOut) {
+        ctx.strokeStyle = "#ff0066";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(size / 2, 0);
+        ctx.lineTo(size / 2 + 8, -3);
+        ctx.moveTo(size / 2, 0);
+        ctx.lineTo(size / 2 + 8, 3);
+        ctx.stroke();
+      }
     } else if (velocityX < 0) { // влево
-      ctx.fillRect(-width / 2 + 2, -eyeOffset, eyeSize, eyeSize);
-      ctx.fillRect(-width / 2 + 2, eyeOffset - eyeSize, eyeSize, eyeSize);
+      ctx.fillRect(-size / 2 + 2, -eyeOffset, eyeSize, eyeSize);
+      ctx.fillRect(-size / 2 + 2, eyeOffset - eyeSize, eyeSize, eyeSize);
+      
+      if (tongueOut) {
+        ctx.strokeStyle = "#ff0066";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-size / 2, 0);
+        ctx.lineTo(-size / 2 - 8, -3);
+        ctx.moveTo(-size / 2, 0);
+        ctx.lineTo(-size / 2 - 8, 3);
+        ctx.stroke();
+      }
     } else if (velocityY > 0) { // вниз
-      ctx.fillRect(-eyeOffset, height / 2 - 5, eyeSize, eyeSize);
-      ctx.fillRect(eyeOffset - eyeSize, height / 2 - 5, eyeSize, eyeSize);
+      ctx.fillRect(-eyeOffset, size / 2 - 6, eyeSize, eyeSize);
+      ctx.fillRect(eyeOffset - eyeSize, size / 2 - 6, eyeSize, eyeSize);
+      
+      if (tongueOut) {
+        ctx.strokeStyle = "#ff0066";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, size / 2);
+        ctx.lineTo(-3, size / 2 + 8);
+        ctx.moveTo(0, size / 2);
+        ctx.lineTo(3, size / 2 + 8);
+        ctx.stroke();
+      }
     } else if (velocityY < 0) { // вверх
-      ctx.fillRect(-eyeOffset, -height / 2 + 2, eyeSize, eyeSize);
-      ctx.fillRect(eyeOffset - eyeSize, -height / 2 + 2, eyeSize, eyeSize);
+      ctx.fillRect(-eyeOffset, -size / 2 + 2, eyeSize, eyeSize);
+      ctx.fillRect(eyeOffset - eyeSize, -size / 2 + 2, eyeSize, eyeSize);
+      
+      if (tongueOut) {
+        ctx.strokeStyle = "#ff0066";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -size / 2);
+        ctx.lineTo(-3, -size / 2 - 8);
+        ctx.moveTo(0, -size / 2);
+        ctx.lineTo(3, -size / 2 - 8);
+        ctx.stroke();
+      }
     }
   }
   
@@ -329,7 +397,7 @@ function draw() {
     drawSnakePart(snake[i].x, snake[i].y, i, i === 0);
   }
 
-  // Еда (картинка яблока)
+  // Еда
   if (imagesLoaded) {
     const img = food.isPoisoned ? poisonAppleImg : appleImg;
     const appleSize = GRID_SIZE * 1.3;
@@ -343,7 +411,6 @@ function draw() {
       appleSize
     );
   } else {
-    // Запасной вариант
     if (food.isPoisoned) {
       ctx.fillStyle = "#ff0000";
       ctx.fillRect(food.x * GRID_SIZE, food.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
