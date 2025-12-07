@@ -136,7 +136,6 @@ if (btnContact && modal && modalClose) {
   });
 }
 
-// ========== ЗВЁЗДНОЕ НЕБО ДЛЯ МЕНЮ ==========
 function createMenuStarryBackground() {
   let bgCanvas = document.getElementById("menu-stars-bg");
   
@@ -145,7 +144,7 @@ function createMenuStarryBackground() {
     bgCanvas.id = "menu-stars-bg";
     bgCanvas.style.position = "fixed";
     bgCanvas.style.inset = "0";
-    bgCanvas.style.zIndex = "-1";
+    bgCanvas.style.zIndex = "-1"; // ← ИСПРАВЛЕНО
     bgCanvas.style.pointerEvents = "none";
     document.body.appendChild(bgCanvas);
   }
@@ -165,18 +164,53 @@ function createMenuStarryBackground() {
     });
   }
 
+ function createMenuStarryBackground() {
+  let bgCanvas = document.getElementById("menu-stars-bg");
+  
+  if (!bgCanvas) {
+    bgCanvas = document.createElement("canvas");
+    bgCanvas.id = "menu-stars-bg";
+    bgCanvas.style.position = "fixed";
+    bgCanvas.style.inset = "0";
+    bgCanvas.style.zIndex = "-1";
+    bgCanvas.style.pointerEvents = "none";
+    document.body.appendChild(bgCanvas);
+  }
+
+  const ctxBg = bgCanvas.getContext("2d");
+  bgCanvas.width = window.innerWidth;
+  bgCanvas.height = window.innerHeight;
+
+  const stars = [];
+  for (let i = 0; i < 300; i++) { // ← Больше звёзд (было 200)
+    stars.push({
+      x: Math.random() * bgCanvas.width,
+      y: Math.random() * bgCanvas.height,
+      radius: Math.random() * 2.5 + 0.5, // ← Крупнее (было 2)
+      speed: Math.random() * 0.8 + 0.2, // ← Быстрее
+      opacity: Math.random() * 0.5 + 0.5 // ← Ярче (минимум 0.5)
+    });
+  }
+
   function drawStars() {
-    ctxBg.fillStyle = "rgba(0, 0, 0, 0.1)";
+    ctxBg.fillStyle = "rgba(0, 0, 0, 0.05)"; // ← Медленнее затухание (было 0.1)
     ctxBg.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
 
     stars.forEach(star => {
-      star.opacity += (Math.random() - 0.5) * 0.1;
-      star.opacity = Math.max(0.1, Math.min(1, star.opacity));
+      star.opacity += (Math.random() - 0.5) * 0.05; // ← Плавнее мерцание
+      star.opacity = Math.max(0.3, Math.min(1, star.opacity)); // ← Минимум 0.3 (было 0.1)
       
       ctxBg.beginPath();
       ctxBg.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+      
+      // ← Добавил свечение
+      ctxBg.shadowBlur = 8;
+      ctxBg.shadowColor = `rgba(255, 255, 255, ${star.opacity})`;
       ctxBg.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
       ctxBg.fill();
+      
+      // Сброс тени
+      ctxBg.shadowBlur = 0;
       
       star.y += star.speed;
       if (star.y > bgCanvas.height) {
@@ -188,8 +222,3 @@ function createMenuStarryBackground() {
 
   setInterval(drawStars, 30);
 }
-
-// Запускаем звёзды сразу
-createMenuStarryBackground();
-
-})();
