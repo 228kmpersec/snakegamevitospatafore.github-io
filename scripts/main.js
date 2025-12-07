@@ -74,7 +74,7 @@ let loadedImagesCount = 0;
 // Типы фруктов с шансами
 const FRUIT_TYPES = {
   apple: {
-    probability: 0.01,
+    probability: 0.85,
     score: 1,
     color: "#ffffff"
   },
@@ -97,7 +97,7 @@ const FRUIT_TYPES = {
     blurDuration: 8000
   },
   starberry: {
-    probability: 1.0,
+    probability: 0.02,
     score: 3,
     color: "#87CEEB",
     duration: 15000
