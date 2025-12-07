@@ -240,35 +240,47 @@ function draw() {
       ctx.fillStyle = "#00ff41"; // зелёная обычная
     }
     
-    let size = GRID_SIZE - 2;
+    let width = GRID_SIZE - 2;
+    let height = GRID_SIZE - 2;
     let offsetX = 0;
     let offsetY = 0;
     
-    // Анимация сжатия головы при смерти
+    // Анимация сжатия головы при смерти (сплющивается)
     if (isHead && isDead) {
-      const shrinkAmount = Math.min(deathAnimationProgress, 1) * (GRID_SIZE / 2);
-      size = GRID_SIZE - 2 - shrinkAmount;
-      offsetX = shrinkAmount / 2;
-      offsetY = shrinkAmount / 2;
+      const squashAmount = Math.min(deathAnimationProgress, 1);
+      
+      // Определяем направление удара
+      if (velocityY !== 0) {
+        // Удар сверху/снизу - сжимается по вертикали
+        height = (GRID_SIZE - 2) * (1 - squashAmount * 0.6); // сжимается до 40% высоты
+        offsetY = ((GRID_SIZE - 2) - height) / 2;
+      } else if (velocityX !== 0) {
+        // Удар слева/справа - сжимается по горизонтали
+        width = (GRID_SIZE - 2) * (1 - squashAmount * 0.6); // сжимается до 40% ширины
+        offsetX = ((GRID_SIZE - 2) - width) / 2;
+      }
     }
     
     ctx.fillRect(
       snake[i].x * GRID_SIZE + 1 + offsetX,
       snake[i].y * GRID_SIZE + 1 + offsetY,
-      size,
-      size
+      width,
+      height
     );
   }
 
-  // Еда (картинка яблока на всю клетку)
+  // Еда (картинка яблока БОЛЬШЕ - выходит за клетку)
   if (imagesLoaded) {
     const img = food.isPoisoned ? poisonAppleImg : appleImg;
+    const appleSize = GRID_SIZE * 1.3; // на 30% больше клетки
+    const offset = (GRID_SIZE - appleSize) / 2;
+    
     ctx.drawImage(
       img,
-      food.x * GRID_SIZE,
-      food.y * GRID_SIZE,
-      GRID_SIZE,
-      GRID_SIZE
+      food.x * GRID_SIZE + offset,
+      food.y * GRID_SIZE + offset,
+      appleSize,
+      appleSize
     );
   } else {
     // Запасной вариант
