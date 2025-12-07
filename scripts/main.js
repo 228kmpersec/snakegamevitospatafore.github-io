@@ -1,4 +1,4 @@
-// SNAKE GAME LOGIC + MATRIX BACKGROUND
+// SNAKE GAME LOGIC + MATRIX BACKGROUND + FRUITS
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -11,22 +11,40 @@ let tileCountY = 20;
 let velocityX = 0;
 let velocityY = 0;
 let snake = [];
-let snakeSet = new Set(); // Оптимизация для быстрой проверки коллизий
-let food = { x: 5, y: 5, isPoisoned: false };
+let snakeSet = new Set();
+let food = { x: 5, y: 5, type: "apple" };
 let score = 0;
 let isGameRunning = false;
 let isPoisoned = false;
 let poisonTimer = null;
 let isDead = false;
 
+// Эффекты фруктов
+let hasSecondChance = false; // Starberry эффект
+let isSpeedBoosted = false;
+let speedBoostTimer = null;
+let isBlurred = false;
+let blurTimer = null;
+let blurOpacity = 0;
+
+// Starberry визуальные эффекты
+let starberryActive = false;
+let starberryTimer = null;
+let starberryProgress = 1; // 1 = полный эффект, 0 = нет эффекта
+let stars = [];
+
+// Pepper эффекты
+let pepperActive = false;
+let pepperTimer = null;
+let steamParticles = [];
+
 // Для плавного движения
 let lastMoveTime = 0;
 let moveDelay = 40;
+let baseSpeed = 40;
 let interpolationProgress = 0;
 
-// Сохраняем предыдущие позиции для интерполяции
 let previousSnake = [];
-
 let animationFrame = 0;
 
 // Язык
@@ -41,10 +59,47 @@ window.gameMode = "default";
 let foodSound = null;
 let gameoverSound = null;
 
-// Картинки яблок
+// Картинки фруктов
 let appleImg = null;
 let poisonAppleImg = null;
+let pepperImg = null;
+let plumImg = null;
+let starberryImg = null;
 let imagesLoaded = false;
+let loadedImagesCount = 0;
+
+// Типы фруктов с шансами
+const FRUIT_TYPES = {
+  apple: {
+    probability: 0.85,
+    score: 1,
+    color: "#ffffff"
+  },
+  poisonApple: {
+    probability: 0.01,
+    score: 1,
+    color: "#ff0000"
+  },
+  pepper: {
+    probability: 0.04,
+    score: 1,
+    color: "#FF4500",
+    speedMultiplier: 5,
+    duration: 5000
+  },
+  plum: {
+    probability: 0.08,
+    score: 1,
+    color: "#8B008B",
+    blurDuration: 8000
+  },
+  starberry: {
+    probability: 0.02,
+    score: 3,
+    color: "#87CEEB",
+    duration: 15000
+  }
+};
 
 // Загрузка звуков
 function loadSounds() {
@@ -58,26 +113,39 @@ function loadSounds() {
 
 // Загрузка картинок
 function loadImages() {
+  const totalImages = 5;
+  
   appleImg = new Image();
   appleImg.src = "images/apple.png";
   
   poisonAppleImg = new Image();
   poisonAppleImg.src = "images/poisoned_apple.png";
   
-  let loadedCount = 0;
+  pepperImg = new Image();
+  pepperImg.src = "images/pepper.png";
   
-  appleImg.onload = () => {
-    loadedCount++;
-    if (loadedCount === 2) imagesLoaded = true;
+  plumImg = new Image();
+  plumImg.src = "images/plum.png";
+  
+  starberryImg = new Image();
+  starberryImg.src = "images/starberry.png";
+  
+  const onLoad = () => {
+    loadedImagesCount++;
+    if (loadedImagesCount === totalImages) imagesLoaded = true;
   };
   
-  poisonAppleImg.onload = () => {
-    loadedCount++;
-    if (loadedCount === 2) imagesLoaded = true;
-  };
+  appleImg.onload = onLoad;
+  poisonAppleImg.onload = onLoad;
+  pepperImg.onload = onLoad;
+  plumImg.onload = onLoad;
+  starberryImg.onload = onLoad;
   
   appleImg.onerror = () => console.warn("Не удалось загрузить images/apple.png");
   poisonAppleImg.onerror = () => console.warn("Не удалось загрузить images/poisoned_apple.png");
+  pepperImg.onerror = () => console.warn("Не удалось загрузить images/pepper.png");
+  plumImg.onerror = () => console.warn("Не удалось загрузить images/plum.png");
+  starberryImg.onerror = () => console.warn("Не удалось загрузить images/starberry.png");
 }
 
 // Хелпер для создания ключа позиции
@@ -85,12 +153,12 @@ function posKey(x, y) {
   return `${x},${y}`;
 }
 
-// ================== LERP ФУНКЦИЯ ==================
+// LERP функция
 function lerp(start, end, t) {
   return start + (end - start) * t;
 }
 
-// ================== РАЗМЕР КАНВАСА ==================
+// Размер канваса
 function resizeCanvas() {
   const mode = window.gameMode || "default";
   
@@ -120,7 +188,7 @@ function resizeCanvas() {
   tileCountY = rows;
 }
 
-// ================== ИНИЦИАЛИЗАЦИЯ ИГРЫ ==================
+// Инициализация игры
 window.initSnakeGame = function () {
   if (isGameRunning) return;
 
@@ -145,8 +213,21 @@ window.initSnakeGame = function () {
   interpolationProgress = 0;
   tongueOut = false;
   
-  moveDelay = window.gameSpeed;
+  baseSpeed = window.gameSpeed;
+  moveDelay = baseSpeed;
   
+  // Сброс всех эффектов
+  hasSecondChance = false;
+  isSpeedBoosted = false;
+  isBlurred = false;
+  starberryActive = false;
+  pepperActive = false;
+  stars = [];
+  steamParticles = [];
+  blurOpacity = 0;
+  starberryProgress = 1;
+  
+  // Очистка таймеров
   if (poisonTimer) {
     clearTimeout(poisonTimer);
     poisonTimer = null;
@@ -155,6 +236,26 @@ window.initSnakeGame = function () {
   if (tongueTimer) {
     clearTimeout(tongueTimer);
     tongueTimer = null;
+  }
+  
+  if (speedBoostTimer) {
+    clearTimeout(speedBoostTimer);
+    speedBoostTimer = null;
+  }
+  
+  if (blurTimer) {
+    clearTimeout(blurTimer);
+    blurTimer = null;
+  }
+  
+  if (starberryTimer) {
+    clearTimeout(starberryTimer);
+    starberryTimer = null;
+  }
+  
+  if (pepperTimer) {
+    clearTimeout(pepperTimer);
+    pepperTimer = null;
   }
 
   spawnFood();
@@ -168,18 +269,16 @@ window.stopSnakeGame = function () {
   isGameRunning = false;
   document.removeEventListener("keydown", keyDownEvent);
   
-  if (poisonTimer) {
-    clearTimeout(poisonTimer);
-    poisonTimer = null;
-  }
-  
-  if (tongueTimer) {
-    clearTimeout(tongueTimer);
-    tongueTimer = null;
-  }
+  // Очистка всех таймеров
+  if (poisonTimer) clearTimeout(poisonTimer);
+  if (tongueTimer) clearTimeout(tongueTimer);
+  if (speedBoostTimer) clearTimeout(speedBoostTimer);
+  if (blurTimer) clearTimeout(blurTimer);
+  if (starberryTimer) clearTimeout(starberryTimer);
+  if (pepperTimer) clearTimeout(pepperTimer);
 };
 
-// ================== ИГРОВОЙ ЦИКЛ ==================
+// Игровой цикл
 function gameLoop(currentTime) {
   if (!isGameRunning) return;
   
@@ -187,7 +286,6 @@ function gameLoop(currentTime) {
   
   const deltaTime = currentTime - lastMoveTime;
   
-  // Обновляем прогресс интерполяции
   interpolationProgress = Math.min(deltaTime / moveDelay, 1);
   
   if (deltaTime >= moveDelay) {
@@ -196,15 +294,19 @@ function gameLoop(currentTime) {
     updateGame();
   }
   
+  // Обновление частиц пара (pepper)
+  if (pepperActive) {
+    updateSteamParticles();
+  }
+  
   draw();
   requestAnimationFrame(gameLoop);
 }
 
-// ================== ОБНОВЛЕНИЕ ЛОГИКИ ИГРЫ ==================
+// Обновление логики игры
 function updateGame() {
   if (isDead || isPoisoned || velocityX === 0 && velocityY === 0) return;
 
-  // Сохраняем текущие позиции как "предыдущие" для интерполяции
   previousSnake = snake.map(segment => ({ ...segment }));
 
   const head = { x: snake[0].x + velocityX, y: snake[0].y + velocityY };
@@ -212,12 +314,23 @@ function updateGame() {
 
   // Столкновение со стеной
   if (head.x < 0 || head.x >= tileCountX || head.y < 0 || head.y >= tileCountY) {
+    if (hasSecondChance) {
+      // Используем второй шанс!
+      hasSecondChance = false;
+      showSecondChanceEffect();
+      return;
+    }
     startDeathAnimation(false);
     return;
   }
 
-  // ОПТИМИЗАЦИЯ: Проверка коллизии с собой через Set - O(1) вместо O(n)
+  // Столкновение с собой
   if (snakeSet.has(headKey)) {
+    if (hasSecondChance) {
+      hasSecondChance = false;
+      showSecondChanceEffect();
+      return;
+    }
     startDeathAnimation(false);
     return;
   }
@@ -227,29 +340,22 @@ function updateGame() {
 
   // Еда
   if (head.x === food.x && head.y === food.y) {
-    score++;
+    const fruitType = food.type;
+    const fruitConfig = FRUIT_TYPES[fruitType];
+    
+    score += fruitConfig.score;
     scoreEl.innerText = score;
     
     if (score % 8 === 0) {
       showTongue();
     }
     
-    if (food.isPoisoned) {
-      if (foodSound) foodSound.play();
-      isPoisoned = true;
-      
-      poisonTimer = setTimeout(() => {
-        startDeathAnimation(true);
-      }, 2000);
-      
-      canvas.style.animation = "poisonShake 0.2s infinite";
-    } else {
-      if (foodSound) foodSound.play();
-    }
+    // Применяем эффекты фруктов
+    applyFruitEffect(fruitType);
+    
+    if (foodSound) foodSound.play();
     
     spawnFood();
-    
-    // При росте змеи добавляем предыдущую позицию хвоста
     previousSnake.push({ ...previousSnake[previousSnake.length - 1] });
   } else {
     const tail = snake.pop();
@@ -257,7 +363,181 @@ function updateGame() {
   }
 }
 
-// ================== ПОКАЗАТЬ ЯЗЫК ==================
+// Применение эффектов фруктов
+function applyFruitEffect(fruitType) {
+  switch (fruitType) {
+    case "poisonApple":
+      isPoisoned = true;
+      poisonTimer = setTimeout(() => {
+        startDeathAnimation(true);
+      }, 2000);
+      canvas.style.animation = "poisonShake 0.2s infinite";
+      break;
+      
+    case "pepper":
+      activatePepperEffect();
+      break;
+      
+    case "plum":
+      activatePlumEffect();
+      break;
+      
+    case "starberry":
+      activateStarberryEffect();
+      break;
+  }
+}
+
+// Pepper эффект
+function activatePepperEffect() {
+  pepperActive = true;
+  isSpeedBoosted = true;
+  
+  moveDelay = baseSpeed / 5; // В 5 раз быстрее
+  steamParticles = [];
+  
+  if (pepperTimer) clearTimeout(pepperTimer);
+  
+  pepperTimer = setTimeout(() => {
+    pepperActive = false;
+    isSpeedBoosted = false;
+    moveDelay = baseSpeed;
+    steamParticles = [];
+  }, 5000);
+}
+
+// Обновление частиц пара
+function updateSteamParticles() {
+  // Добавляем новые частицы
+  if (animationFrame % 3 === 0) {
+    const head = snake[0];
+    const headX = head.x * GRID_SIZE + GRID_SIZE / 2;
+    const headY = head.y * GRID_SIZE + GRID_SIZE / 2;
+    
+    // Левая сторона
+    steamParticles.push({
+      x: headX - GRID_SIZE / 2,
+      y: headY,
+      vx: -2 - Math.random() * 2,
+      vy: -1 + Math.random() * 2,
+      life: 1,
+      size: 3 + Math.random() * 4
+    });
+    
+    // Правая сторона
+    steamParticles.push({
+      x: headX + GRID_SIZE / 2,
+      y: headY,
+      vx: 2 + Math.random() * 2,
+      vy: -1 + Math.random() * 2,
+      life: 1,
+      size: 3 + Math.random() * 4
+    });
+  }
+  
+  // Обновляем существующие частицы
+  for (let i = steamParticles.length - 1; i >= 0; i--) {
+    const p = steamParticles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= 0.02;
+    p.size *= 1.05;
+    
+    if (p.life <= 0) {
+      steamParticles.splice(i, 1);
+    }
+  }
+}
+
+// Plum эффект
+function activatePlumEffect() {
+  isBlurred = true;
+  blurOpacity = 0.85;
+  
+  if (blurTimer) clearTimeout(blurTimer);
+  
+  blurTimer = setTimeout(() => {
+    isBlurred = false;
+    blurOpacity = 0;
+  }, 8000);
+}
+
+// Starberry эффект
+function activateStarberryEffect() {
+  hasSecondChance = true;
+  starberryActive = true;
+  starberryProgress = 1;
+  
+  // Создаём звёздочки по краям
+  stars = [];
+  for (let i = 0; i < 30; i++) {
+    const side = Math.floor(Math.random() * 4);
+    let x, y;
+    
+    switch (side) {
+      case 0: // top
+        x = Math.random() * canvas.width;
+        y = -10;
+        break;
+      case 1: // right
+        x = canvas.width + 10;
+        y = Math.random() * canvas.height;
+        break;
+      case 2: // bottom
+        x = Math.random() * canvas.width;
+        y = canvas.height + 10;
+        break;
+      case 3: // left
+        x = -10;
+        y = Math.random() * canvas.height;
+        break;
+    }
+    
+    stars.push({
+      x: x,
+      y: y,
+      size: 3 + Math.random() * 5,
+      speed: 1 + Math.random() * 2,
+      angle: Math.random() * Math.PI * 2,
+      rotation: Math.random() * Math.PI * 2,
+      rotationSpeed: (Math.random() - 0.5) * 0.1
+    });
+  }
+  
+  if (starberryTimer) clearTimeout(starberryTimer);
+  
+  starberryTimer = setTimeout(() => {
+    // Начинаем плавное угасание
+    const fadeInterval = setInterval(() => {
+      starberryProgress -= 0.02;
+      if (starberryProgress <= 0) {
+        starberryActive = false;
+        stars = [];
+        clearInterval(fadeInterval);
+      }
+    }, 50);
+  }, 15000);
+}
+
+// Эффект второго шанса
+function showSecondChanceEffect() {
+  // Вспышка экрана
+  const flash = document.createElement("div");
+  flash.style.position = "fixed";
+  flash.style.inset = "0";
+  flash.style.background = "rgba(135, 206, 235, 0.5)";
+  flash.style.zIndex = "999";
+  flash.style.pointerEvents = "none";
+  document.body.appendChild(flash);
+  
+  setTimeout(() => {
+    flash.style.transition = "opacity 0.5s";
+    flash.style.opacity = "0";
+    setTimeout(() => flash.remove(), 500);
+  }, 100);
+}
+
+// Показать язык
 function showTongue() {
   tongueOut = true;
   
@@ -267,7 +547,7 @@ function showTongue() {
   }, 1000);
 }
 
-// ================== ЗАПУСК АНИМАЦИИ СМЕРТИ ==================
+// Запуск анимации смерти
 function startDeathAnimation(fromPoison) {
   isDead = true;
   
@@ -276,7 +556,7 @@ function startDeathAnimation(fromPoison) {
   }, 1500);
 }
 
-// ================== ОТРИСОВКА СЕГМЕНТА ЗМЕИ ==================
+// Отрисовка сегмента змеи
 function drawSnakePart(x, y, isHead) {
   const centerX = x * GRID_SIZE + GRID_SIZE / 2;
   const centerY = y * GRID_SIZE + GRID_SIZE / 2;
@@ -289,6 +569,8 @@ function drawSnakePart(x, y, isHead) {
     color = "#666666";
   } else if (isPoisoned) {
     color = "#ff3333";
+  } else if (pepperActive) {
+    color = "#FF4500";
   } else {
     color = "#00ff41";
   }
@@ -374,18 +656,81 @@ function drawSnakePart(x, y, isHead) {
   ctx.restore();
 }
 
-// ================== ОТРИСОВКА ==================
+// Рисование звезды
+function drawStar(x, y, size, rotation) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  
+  ctx.fillStyle = `rgba(135, 206, 235, ${starberryProgress * 0.9})`;
+  ctx.beginPath();
+  
+  for (let i = 0; i < 5; i++) {
+    const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+    const x = Math.cos(angle) * size;
+    const y = Math.sin(angle) * size;
+    
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  }
+  
+  ctx.closePath();
+  ctx.fill();
+  
+  ctx.strokeStyle = `rgba(255, 255, 255, ${starberryProgress})`;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  
+  ctx.restore();
+}
+
+// Отрисовка
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Starberry голубое свечение по краям
+  if (starberryActive) {
+    const gradient = ctx.createRadialGradient(
+      canvas.width / 2,
+      canvas.height / 2,
+      Math.min(canvas.width, canvas.height) / 4,
+      canvas.width / 2,
+      canvas.height / 2,
+      Math.max(canvas.width, canvas.height) / 1.5
+    );
+    
+    gradient.addColorStop(0, "transparent");
+    gradient.addColorStop(1, `rgba(135, 206, 235, ${starberryProgress * 0.15})`);
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Рисуем звёздочки
+    for (const star of stars) {
+      star.x += Math.cos(star.angle) * star.speed;
+      star.y += Math.sin(star.angle) * star.speed;
+      star.rotation += star.rotationSpeed;
+      
+      // Wrap around edges
+      if (star.x < -20) star.x = canvas.width + 20;
+      if (star.x > canvas.width + 20) star.x = -20;
+      if (star.y < -20) star.y = canvas.height + 20;
+      if (star.y > canvas.height + 20) star.y = -20;
+      
+      drawStar(star.x, star.y, star.size, star.rotation);
+    }
+  }
 
   // Рисуем змею с интерполяцией
   for (let i = 0; i < snake.length; i++) {
     let drawX = snake[i].x;
     let drawY = snake[i].y;
     
-    // Интерполируем позицию между предыдущей и текущей
     if (i < previousSnake.length) {
       drawX = lerp(previousSnake[i].x, snake[i].x, interpolationProgress);
       drawY = lerp(previousSnake[i].y, snake[i].y, interpolationProgress);
@@ -393,25 +738,74 @@ function draw() {
     
     drawSnakePart(drawX, drawY, i === 0);
   }
+  
+  // Рисуем пар (pepper эффект)
+  if (pepperActive) {
+    for (const particle of steamParticles) {
+      ctx.save();
+      ctx.globalAlpha = particle.life;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // Эффект затемнения (plum)
+  if (isBlurred && blurOpacity > 0) {
+    ctx.fillStyle = `rgba(0, 0, 0, ${blurOpacity})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
 
   // Еда
-  if (imagesLoaded) {
-    const img = food.isPoisoned ? poisonAppleImg : appleImg;
+  let foodImg = null;
+  let foodColor = "#ffffff";
+  
+  switch (food.type) {
+    case "apple":
+      foodImg = appleImg;
+      foodColor = FRUIT_TYPES.apple.color;
+      break;
+    case "poisonApple":
+      foodImg = poisonAppleImg;
+      foodColor = FRUIT_TYPES.poisonApple.color;
+      break;
+    case "pepper":
+      foodImg = pepperImg;
+      foodColor = FRUIT_TYPES.pepper.color;
+      break;
+    case "plum":
+      foodImg = plumImg;
+      foodColor = FRUIT_TYPES.plum.color;
+      break;
+    case "starberry":
+      foodImg = starberryImg;
+      foodColor = FRUIT_TYPES.starberry.color;
+      break;
+  }
+  
+  // Применяем затемнение к еде если активен plum
+  const foodAlpha = (isBlurred && blurOpacity > 0) ? 1 - blurOpacity : 1;
+  ctx.save();
+  ctx.globalAlpha = foodAlpha;
+  
+  if (imagesLoaded && foodImg) {
     const appleSize = GRID_SIZE * 1.3;
     const offset = (GRID_SIZE - appleSize) / 2;
     
     ctx.drawImage(
-      img,
+      foodImg,
       food.x * GRID_SIZE + offset,
       food.y * GRID_SIZE + offset,
       appleSize,
       appleSize
     );
   } else {
-    if (food.isPoisoned) {
-      ctx.fillStyle = "#ff0000";
-      ctx.fillRect(food.x * GRID_SIZE, food.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
-      
+    ctx.fillStyle = foodColor;
+    ctx.fillRect(food.x * GRID_SIZE, food.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+    
+    if (food.type === "poisonApple") {
       ctx.strokeStyle = "#000000";
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -420,30 +814,40 @@ function draw() {
       ctx.moveTo(food.x * GRID_SIZE + GRID_SIZE - 4, food.y * GRID_SIZE + 4);
       ctx.lineTo(food.x * GRID_SIZE + 4, food.y * GRID_SIZE + GRID_SIZE - 4);
       ctx.stroke();
-    } else {
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(food.x * GRID_SIZE, food.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
     }
   }
+  
+  ctx.restore();
 }
 
-// ================== СПАВН ЕДЫ ==================
+// Спавн еды
 function spawnFood() {
   let valid = false;
   while (!valid) {
     const newX = Math.floor(Math.random() * tileCountX);
     const newY = Math.floor(Math.random() * tileCountY);
     
-    // ОПТИМИЗАЦИЯ: Используем Set для проверки
     if (!snakeSet.has(posKey(newX, newY))) {
-      const isPoisonedApple = Math.random() < 0.01;
-      food = { x: newX, y: newY, isPoisoned: isPoisonedApple };
+      // Определяем тип фрукта по вероятности
+      const rand = Math.random();
+      let cumulativeProbability = 0;
+      let selectedType = "apple";
+      
+      for (const [type, config] of Object.entries(FRUIT_TYPES)) {
+        cumulativeProbability += config.probability;
+        if (rand < cumulativeProbability) {
+          selectedType = type;
+          break;
+        }
+      }
+      
+      food = { x: newX, y: newY, type: selectedType };
       valid = true;
     }
   }
 }
 
-// ================== УПРАВЛЕНИЕ ==================
+// Управление
 function keyDownEvent(e) {
   if (isDead) return;
   
@@ -477,7 +881,7 @@ function keyDownEvent(e) {
   }
 }
 
-// ================== КОНЕЦ ИГРЫ ==================
+// Конец игры
 function gameOver(fromPoison) {
   window.stopSnakeGame();
   
@@ -506,7 +910,7 @@ function gameOver(fromPoison) {
   }
 }
 
-// ================== МАТРИЦА НА ЗАДНЕМ ФОНЕ ==================
+// Матрица на заднем фоне
 function createMatrixRain() {
   let matrixCanvas = document.getElementById("matrix-bg");
   
