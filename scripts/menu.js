@@ -138,4 +138,61 @@ if (btnContact && modal && modalClose) {
   });
 }
 
+// ========== ЗВЁЗДНОЕ НЕБО ДЛЯ МЕНЮ ==========
+function createMenuStarryBackground() {
+  let bgCanvas = document.getElementById("menu-stars-bg");
+  
+  if (!bgCanvas) {
+    bgCanvas = document.createElement("canvas");
+    bgCanvas.id = "menu-stars-bg";
+    bgCanvas.style.position = "fixed";
+    bgCanvas.style.inset = "0";
+    bgCanvas.style.zIndex = "1"; // Выше матрицы, но ниже меню
+    bgCanvas.style.pointerEvents = "none";
+    document.body.appendChild(bgCanvas);
+  }
+
+  const ctxBg = bgCanvas.getContext("2d");
+  bgCanvas.width = window.innerWidth;
+  bgCanvas.height = window.innerHeight;
+
+  const stars = [];
+  for (let i = 0; i < 200; i++) {
+    stars.push({
+      x: Math.random() * bgCanvas.width,
+      y: Math.random() * bgCanvas.height,
+      radius: Math.random() * 2,
+      speed: Math.random() * 0.5 + 0.1,
+      opacity: Math.random()
+    });
+  }
+
+  function drawStars() {
+    ctxBg.fillStyle = "rgba(0, 0, 0, 0.1)";
+    ctxBg.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+    stars.forEach(star => {
+      star.opacity += (Math.random() - 0.5) * 0.1;
+      star.opacity = Math.max(0.1, Math.min(1, star.opacity));
+      
+      ctxBg.beginPath();
+      ctxBg.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+      ctxBg.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+      ctxBg.fill();
+      
+      star.y += star.speed;
+      if (star.y > bgCanvas.height) {
+        star.y = 0;
+        star.x = Math.random() * bgCanvas.width;
+      }
+    });
+  }
+
+  setInterval(drawStars, 30);
+}
+
+// Запускаем звёзды сразу при загрузке меню
+createMenuStarryBackground();
+
 })();
+
