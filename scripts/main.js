@@ -21,10 +21,10 @@ let isDead = false;
 // Для плавного движения
 let lastMoveTime = 0;
 let moveDelay = 40;
+let interpolationProgress = 0;
 
-// Очередь всех позиций для плавного движения тела
-let positionHistory = [];
-let maxHistoryLength = 100;
+// Сохраняем предыдущие позиции для интерполяции
+let previousSnake = [];
 
 let animationFrame = 0;
 
@@ -79,6 +79,11 @@ function loadImages() {
   poisonAppleImg.onerror = () => console.warn("Не удалось загрузить images/poisoned_apple.png");
 }
 
+// ================== LERP ФУНКЦИЯ ==================
+function lerp(start, end, t) {
+  return start + (end - start) * t;
+}
+
 // ================== РАЗМЕР КАНВАСА ==================
 function resizeCanvas() {
   const mode = window.gameMode || "default";
@@ -120,7 +125,7 @@ window.initSnakeGame = function () {
   document.addEventListener("keydown", keyDownEvent);
 
   snake = [{ x: 10, y: 10 }];
-  positionHistory = [{ x: 10, y: 10 }];
+  previousSnake = [{ x: 10, y: 10 }];
   
   score = 0;
   scoreEl.innerText = score;
@@ -130,6 +135,7 @@ window.initSnakeGame = function () {
   isDead = false;
   animationFrame = 0;
   lastMoveTime = performance.now();
+  interpolationProgress = 0;
   tongueOut = false;
   
   moveDelay = window.gameSpeed;
@@ -174,8 +180,12 @@ function gameLoop(currentTime) {
   
   const deltaTime = currentTime - lastMoveTime;
   
+  // Обновляем прогресс интерполяции
+  interpolationProgress = Math.min(deltaTime / moveDelay, 1);
+  
   if (deltaTime >= moveDelay) {
     lastMoveTime = currentTime;
+    interpolationProgress = 0;
     updateGame();
   }
   
@@ -186,6 +196,9 @@ function gameLoop(currentTime) {
 // ================== ОБНОВЛЕНИЕ ЛОГИКИ ИГРЫ ==================
 function updateGame() {
   if (isDead || isPoisoned || velocityX === 0 && velocityY === 0) return;
+
+  // Сохраняем текущие позиции как "предыдущие" для интерполяции
+  previousSnake = snake.map(segment => ({ ...segment }));
 
   const head = { x: snake[0].x + velocityX, y: snake[0].y + velocityY };
 
@@ -204,7 +217,6 @@ function updateGame() {
   }
 
   snake.unshift(head);
-  positionHistory.unshift({ x: head.x, y: head.y });
 
   // Еда
   if (head.x === food.x && head.y === food.y) {
@@ -229,13 +241,11 @@ function updateGame() {
     }
     
     spawnFood();
+    
+    // При росте змеи добавляем предыдущую позицию хвоста
+    previousSnake.push({ ...previousSnake[previousSnake.length - 1] });
   } else {
     snake.pop();
-  }
-  
-  // Ограничиваем историю позиций
-  if (positionHistory.length > maxHistoryLength) {
-    positionHistory.length = maxHistoryLength;
   }
 }
 
@@ -362,9 +372,18 @@ function draw() {
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Рисуем змею используя дискретные позиции
+  // Рисуем змею с интерполяцией
   for (let i = 0; i < snake.length; i++) {
-    drawSnakePart(snake[i].x, snake[i].y, i === 0);
+    let drawX = snake[i].x;
+    let drawY = snake[i].y;
+    
+    // Интерполируем позицию между предыдущей и текущей
+    if (i < previousSnake.length) {
+      drawX = lerp(previousSnake[i].x, snake[i].x, interpolationProgress);
+      drawY = lerp(previousSnake[i].y, snake[i].y, interpolationProgress);
+    }
+    
+    drawSnakePart(drawX, drawY, i === 0);
   }
 
   // Еда
