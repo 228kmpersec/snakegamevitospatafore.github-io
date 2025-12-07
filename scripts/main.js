@@ -11,6 +11,7 @@ let tileCountY = 20;
 let velocityX = 0;
 let velocityY = 0;
 let snake = [];
+let snakeSet = new Set(); // Оптимизация для быстрой проверки коллизий
 let food = { x: 5, y: 5, isPoisoned: false };
 let score = 0;
 let isGameRunning = false;
@@ -79,6 +80,11 @@ function loadImages() {
   poisonAppleImg.onerror = () => console.warn("Не удалось загрузить images/poisoned_apple.png");
 }
 
+// Хелпер для создания ключа позиции
+function posKey(x, y) {
+  return `${x},${y}`;
+}
+
 // ================== LERP ФУНКЦИЯ ==================
 function lerp(start, end, t) {
   return start + (end - start) * t;
@@ -126,6 +132,7 @@ window.initSnakeGame = function () {
 
   snake = [{ x: 10, y: 10 }];
   previousSnake = [{ x: 10, y: 10 }];
+  snakeSet = new Set([posKey(10, 10)]);
   
   score = 0;
   scoreEl.innerText = score;
@@ -201,6 +208,7 @@ function updateGame() {
   previousSnake = snake.map(segment => ({ ...segment }));
 
   const head = { x: snake[0].x + velocityX, y: snake[0].y + velocityY };
+  const headKey = posKey(head.x, head.y);
 
   // Столкновение со стеной
   if (head.x < 0 || head.x >= tileCountX || head.y < 0 || head.y >= tileCountY) {
@@ -208,15 +216,14 @@ function updateGame() {
     return;
   }
 
-  // Столкновение с собой
-  for (let i = 0; i < snake.length; i++) {
-    if (head.x === snake[i].x && head.y === snake[i].y) {
-      startDeathAnimation(false);
-      return;
-    }
+  // ОПТИМИЗАЦИЯ: Проверка коллизии с собой через Set - O(1) вместо O(n)
+  if (snakeSet.has(headKey)) {
+    startDeathAnimation(false);
+    return;
   }
 
   snake.unshift(head);
+  snakeSet.add(headKey);
 
   // Еда
   if (head.x === food.x && head.y === food.y) {
@@ -245,7 +252,8 @@ function updateGame() {
     // При росте змеи добавляем предыдущую позицию хвоста
     previousSnake.push({ ...previousSnake[previousSnake.length - 1] });
   } else {
-    snake.pop();
+    const tail = snake.pop();
+    snakeSet.delete(posKey(tail.x, tail.y));
   }
 }
 
@@ -425,14 +433,9 @@ function spawnFood() {
   while (!valid) {
     const newX = Math.floor(Math.random() * tileCountX);
     const newY = Math.floor(Math.random() * tileCountY);
-    let overlap = false;
-    for (let part of snake) {
-      if (part.x === newX && part.y === newY) {
-        overlap = true;
-        break;
-      }
-    }
-    if (!overlap) {
+    
+    // ОПТИМИЗАЦИЯ: Используем Set для проверки
+    if (!snakeSet.has(posKey(newX, newY))) {
       const isPoisonedApple = Math.random() < 0.01;
       food = { x: newX, y: newY, isPoisoned: isPoisonedApple };
       valid = true;
