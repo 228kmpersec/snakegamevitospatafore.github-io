@@ -194,10 +194,10 @@ function updateSmoothPositions(progress) {
   
   for (let i = 0; i < snake.length; i++) {
     if (i === 0) {
-      // Голова - плавно движется к следующей клетке
+      // Голова - БЕЗ интерполяции, только текущая позиция
       smoothPositions.push({
-        x: snake[i].x + velocityX * progress,
-        y: snake[i].y + velocityY * progress
+        x: snake[i].x,
+        y: snake[i].y
       });
     } else {
       // Тело - плавно следует за предыдущим сегментом
