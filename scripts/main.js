@@ -194,21 +194,25 @@ function updateSmoothPositions(progress) {
   
   for (let i = 0; i < snake.length; i++) {
     if (i === 0) {
-      // Голова - БЕЗ интерполяции, только текущая позиция
+      // Голова - интерполяция от ПРЕДЫДУЩЕЙ позиции к текущей
+      const prevX = snake[i].x - velocityX;
+      const prevY = snake[i].y - velocityY;
+      
       smoothPositions.push({
-        x: snake[i].x,
-        y: snake[i].y
+        x: prevX + velocityX * progress,
+        y: prevY + velocityY * progress
       });
     } else {
       // Тело - плавно следует за предыдущим сегментом
-      const prev = snake[i - 1];
-      const current = snake[i];
-      const dx = prev.x - current.x;
-      const dy = prev.y - current.y;
+      const targetX = smoothPositions[i - 1].x;
+      const targetY = smoothPositions[i - 1].y;
+      
+      // Предыдущая позиция этого сегмента
+      const prevSegment = snake[i + 1] || snake[i];
       
       smoothPositions.push({
-        x: current.x + dx * progress,
-        y: current.y + dy * progress
+        x: snake[i].x + (targetX - snake[i].x) * progress * 0.5,
+        y: snake[i].y + (targetY - snake[i].y) * progress * 0.5
       });
     }
   }
