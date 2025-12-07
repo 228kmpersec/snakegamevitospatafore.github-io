@@ -74,7 +74,7 @@ let loadedImagesCount = 0;
 // Типы фруктов с шансами
 const FRUIT_TYPES = {
   apple: {
-    probability: 0.85,
+    probability: 0.01,
     score: 1,
     color: "#ffffff"
   },
