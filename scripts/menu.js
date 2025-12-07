@@ -3,7 +3,6 @@
 // Логика меню и выбор режима сложности
 
 (function () {
-
 const menuEl = document.getElementById("menu");
 const gameRoot = document.getElementById("game-root");
 const modeWrapper = document.getElementById("mode-wrapper");
@@ -65,7 +64,6 @@ function startGameWithMode(mode, speedMs) {
 
   lastMode = mode;
   lastSpeed = speedMs;
-  
   window.gameSpeed = speedMs;
   window.gameMode = mode; // передаём режим
 
@@ -147,7 +145,7 @@ function createMenuStarryBackground() {
     bgCanvas.id = "menu-stars-bg";
     bgCanvas.style.position = "fixed";
     bgCanvas.style.inset = "0";
-    bgCanvas.style.zIndex = "1"; // Выше матрицы, но ниже меню
+    bgCanvas.style.zIndex = "1";
     bgCanvas.style.pointerEvents = "none";
     document.body.appendChild(bgCanvas);
   }
@@ -191,8 +189,7 @@ function createMenuStarryBackground() {
   setInterval(drawStars, 30);
 }
 
-// Запускаем звёзды сразу при загрузке меню
+// Запускаем звёзды сразу
 createMenuStarryBackground();
 
 })();
-
